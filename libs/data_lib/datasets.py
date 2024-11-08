@@ -8,7 +8,9 @@ from io_lib.paths import DATA_DIR
 
 
 def get_indexed_dataset():
-    data = pd.read_parquet(DATA_DIR / 'part-0_id_9.parquet',
+    data = pd.read_parquet(DATA_DIR / 'train_parquet' /
+                           'partition_id=9' /
+                           'part-0.parquet',
                            engine='pyarrow')
 
     # Group
