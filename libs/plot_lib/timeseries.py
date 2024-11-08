@@ -10,7 +10,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from statsmodels.graphics.tsaplots import plot_pacf
 
-from mat_lib.timeseries import create_lags
+from math_lib.timeseries import create_lags
 
 
 def plot_acf_pacf(ds: pd.Series,
