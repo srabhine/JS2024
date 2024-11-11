@@ -2,7 +2,9 @@
 
 @author: Raffaele M Ghigliazza
 """
+import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 
 from data_lib.datasets import get_symbols_dataset
 from data_lib.synthetic import generate_ar1
@@ -25,3 +27,21 @@ f, axs = plot_acf_pacf(ds, figs_dir=figs_dir, fnm='acf_pacf_ar1')
 
 f, axs = plot_acf_pacf(data_sym['responder_6'], figs_dir=figs_dir,
                        fnm='acf_pacf_responder_6')
+
+# Looking at lag
+for sym in range(10):
+    data_sym = get_symbols_dataset(sym=sym)  # (160688, 89)
+    ds = data_sym['responder_6']
+    ds_lag = ds.shift(-1)
+    df = pd.concat([ds, ds_lag], axis=1,
+                   keys=['lag', 'target']).dropna()
+    print(f'{sym}')
+    print(np.corrcoef(df['lag'].values, df['target'].values))
+
+    f, ax = plt.subplots()
+    f.suptitle(f'{sym}')
+    ax.scatter(df['lag'], df['target'], alpha=0.01)
+    ax.set(title='Responder vs Its Lag', xlabel='lag 6',
+           ylabel='responder 6')
+    f.savefig(figs_dir / f'{sym}_lag.png')
+    plt.close(f)

@@ -3,7 +3,7 @@ import pandas as pd
 from io_lib.paths import DATA_DIR
 
 # Load data
-data = pd.read_parquet(DATA_DIR / 'part-0_id_9.parquet',
+data = pd.read_parquet(DATA_DIR / 'part-0.parquet',
                        engine='pyarrow')
 
 # Group
