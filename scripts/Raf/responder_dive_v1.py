@@ -29,7 +29,7 @@ f, axs = plot_acf_pacf(data_sym['responder_6'], figs_dir=figs_dir,
                        fnm='acf_pacf_responder_6')
 
 # Looking at lag
-for sym in range(10):
+for sym in range(10, 20):
     data_sym = get_symbols_dataset(sym=sym)  # (160688, 89)
     ds = data_sym['responder_6']
     ds_lag = ds.shift(-1)
