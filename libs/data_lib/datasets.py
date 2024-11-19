@@ -2,9 +2,11 @@
 
 @author: Raffaele M Ghigliazza
 """
+from typing import List
+
 import pandas as pd
 
-from io_lib.paths import DATA_DIR
+from io_lib.paths import DATA_DIR, LAGS_FEATURES_TRAINING
 
 
 def get_indexed_dataset():
@@ -27,3 +29,11 @@ def get_symbols_dataset(sym: int = 1):
     data_sym = data_ixd.loc[sym]
     return data_sym
 
+
+def load_data_by_dates(dates: List[int]):
+
+    data = [pd.read_parquet(
+        LAGS_FEATURES_TRAINING / 'train_parquet' /
+        f'date_id={dates[i]}' / '00000000.parquet' for i in dates)]
+    data = pd.concat(data, axis=0)
+    return data
