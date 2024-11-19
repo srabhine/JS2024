@@ -18,3 +18,9 @@ print(ROOT)
 LIB_DIR = ROOT / 'libs'
 DATA_DIR = ROOT / 'data'
 FIGS_DIR = ROOT / 'figures'
+
+
+TRAIN_DIR = DATA_DIR / 'train_parquet'
+LAGS_FEAT_DIR = DATA_DIR / 'lags_features'
+LAGS_FEATURES_TRAINING = LAGS_FEAT_DIR / 'training_parquet'
+LAGS_FEATURES_VALIDATION = LAGS_FEAT_DIR /'validation_parquet'
