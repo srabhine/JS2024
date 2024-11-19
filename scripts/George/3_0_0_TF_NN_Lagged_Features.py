@@ -5,8 +5,11 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
-from tensorflow.keras import layers, models, optimizers, regularizers, callbacks
+from tensorflow.keras import (layers, models, optimizers,
+                              regularizers, callbacks)
 
+from io_lib.paths import LAGS_FEATURES_TRAINING, \
+    LAGS_FEATURES_VALIDATION
 
 
 # Prepare datasets
@@ -18,7 +21,8 @@ from tensorflow.keras import layers, models, optimizers, regularizers, callbacks
 #     return dataset
 
 
-def get_generator_v3(dataframe, weights, feature_names, label_name, shuffle=True, batch_size=8192):
+def get_generator_v3(dataframe, weights, feature_names,
+                     label_name, shuffle=True, batch_size=8192):
     def generator():
         indices = np.arange(len(dataframe))
         if shuffle:
@@ -43,7 +47,8 @@ def get_generator_v3(dataframe, weights, feature_names, label_name, shuffle=True
     return generator
 
 
-def prepare_dataset(dataframe, weights, feature_names, label_name, batch_size=8192, shuffle=True):
+def prepare_dataset(dataframe, weights, feature_names,
+                    label_name, batch_size=8192, shuffle=True):
     num_features = len(feature_names)
 
     output_signature = (
@@ -53,7 +58,8 @@ def prepare_dataset(dataframe, weights, feature_names, label_name, batch_size=81
     )
 
     dataset = tf.data.Dataset.from_generator(
-        get_generator_v3(dataframe, weights, feature_names, label_name, shuffle, batch_size),
+        get_generator_v3(dataframe, weights, feature_names,
+                         label_name, shuffle, batch_size),
         output_signature=output_signature
     )
 
@@ -100,8 +106,6 @@ def prepare_dataset(dataframe, weights, feature_names, label_name, batch_size=81
 #     return model
 
 
-
-
 def create_model(input_dim, lr, weight_decay):
     # Create a sequential model
     model = models.Sequential()
@@ -137,21 +141,21 @@ def create_model(input_dim, lr, weight_decay):
     # Compile model with Mean Squared Error loss
     model.compile(optimizer=optimizers.Adam(learning_rate=lr),
                   loss='mse',
-                  metrics=[tf.keras.metrics.R2Score(class_aggregation='uniform_average')])
+                  metrics=[tf.keras.metrics.R2Score(
+                      class_aggregation='uniform_average')])
 
     return model
 
 
-
-feature_names = [f"feature_{i:02d}" for i in range(79)] + [f"feature_{i:02d}_lag_1" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
+feature_names = ([f"feature_{i:02d}" for i in range(79)]
+                 + [f"feature_{i:02d}_lag_1" for i in range(79)]
+                 + [f"responder_{idx}_lag_1" for idx in range(9)])
 label_name = 'responder_6'
 weight_name = 'weight'
 
 # Load data
-df = pl.scan_parquet(f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/lags_features/training.parquet").collect().to_pandas()
-valid = pl.scan_parquet(f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/lags_features/validation.parquet").collect().to_pandas()
-
-
+df = pl.scan_parquet(LAGS_FEATURES_TRAINING).collect().to_pandas()
+valid = pl.scan_parquet(LAGS_FEATURES_VALIDATION).collect().to_pandas()
 
 
 
