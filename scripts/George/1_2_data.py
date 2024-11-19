@@ -1,3 +1,9 @@
+"""
+Making Lagged Features by 1 time_id
+Making Lagged Responders by 1 date_id
+
+"""
+
 import pandas as pd
 import polars as pl
 import numpy as np
@@ -7,20 +13,17 @@ import matplotlib.cm as cm
 from sklearn.model_selection import StratifiedGroupKFold
 
 
-"""
-Making Lagged Features by 1 time_id 
-Making Lagged Responders by 1 date_id
-
-"""
-
-
 class CONFIG:
     target_col = "responder_6"
-    lag_cols_original = ["date_id", "symbol_id"] + [f"responder_{idx}" for idx in range(9)]
-    lag_cols_rename = { f"responder_{idx}" : f"responder_{idx}_lag_1" for idx in range(9)}
+    lag_cols_original = (["date_id", "symbol_id"] +
+                         [f"responder_{idx}" for idx in range(9)])
+    lag_cols_rename = { f"responder_{idx}":
+                            f"responder_{idx}_lag_1" for idx in range(9)}
 
-    lag_feature_original = ["date_id", "time_id", "symbol_id"]  + [f"feature_{i:02d}" for i in range(79)]
-    lag_feature_rename = { f"feature_{idx:02d}" : f"feature_{idx:02d}_lag_1" for idx in range(79)}
+    lag_feature_original = (["date_id", "time_id", "symbol_id"]
+                            + [f"feature_{i:02d}" for i in range(79)])
+    lag_feature_rename = { f"feature_{idx:02d}":
+                               f"feature_{idx:02d}_lag_1" for idx in range(79)}
 
     valid_ratio = 0.05
     start_dt = 500
@@ -43,7 +46,8 @@ lags = lags.rename(CONFIG.lag_cols_rename)
 lags = lags.with_columns(
     date_id = pl.col('date_id') + 1,  # lagged by 1 day
     )
-lags = lags.group_by(["date_id", "symbol_id"], maintain_order=True).last()  # pick up last record of previous date
+lags = lags.group_by(["date_id", "symbol_id"],
+                     maintain_order=True).last()  # pick up last record of previous date
 
 
 # Merge training data and lags data
@@ -54,8 +58,10 @@ lag_feature = lag_feature.rename(CONFIG.lag_feature_rename)
 lag_feature = lag_feature.with_columns(
     time_id = pl.col('time_id') + 1,
 )
-lag_feature = lag_feature.group_by(["date_id", "time_id" ,"symbol_id"], maintain_order=True).last()  # pick up last record of previous date
-train = train.join(lag_feature, on=["date_id", "time_id" ,"symbol_id"],  how="left")
+lag_feature = lag_feature.group_by(
+    ["date_id", "time_id" ,"symbol_id"], maintain_order=True).last()  # pick up last record of previous date
+train = train.join(lag_feature,
+                   on=["date_id", "time_id" ,"symbol_id"],  how="left")
 
 
 
@@ -70,7 +76,7 @@ print(f"\n len_ofl_mdl = {len_ofl_mdl}")
 print(f"\n---> Last offline train date = {last_tr_dt}\n")
 
 training_data = train.filter(pl.col("date_id").le(last_tr_dt))
-validation_data   = train.filter(pl.col("date_id").gt(last_tr_dt))
+validation_data = train.filter(pl.col("date_id").gt(last_tr_dt))
 
 # Save data as parquets
 training_data.collect().\
@@ -82,3 +88,4 @@ validation_data.collect().\
 write_parquet(
     "/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/lags_features/validation.parquet", partition_by = "date_id",
 )
+
