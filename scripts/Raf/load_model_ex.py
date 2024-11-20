@@ -110,3 +110,12 @@ f, ax = plt.subplots(1)
 ax.plot(predictions)
 plt.show()
 
+
+
+# Seed 1234
+# tanh: R² Score on validation data: 0.022405683994293213
+# linear: R² Score on validation data: 0.014503955841064453
+
+# Seed 0
+# tanh: R² Score on validation data: -0.06566083431243896
+# linear: R² Score on validation data: 0.014717578887939453
