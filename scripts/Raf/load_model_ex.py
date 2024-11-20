@@ -6,7 +6,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
-from tensorflow.keras import layers, models, optimizers, regularizers, callbacks
+from tensorflow.keras import (layers, models, optimizers,
+                              regularizers, callbacks)
 
 from io_lib.paths import LAGS_FEATURES_TRAINING, \
     LAGS_FEATURES_VALIDATION
@@ -56,69 +57,69 @@ lr = 0.01
 weight_decay = 5e-4
 
 input_dim = 167
-model = create_model(input_dim=input_dim, lr = lr, weight_decay=weight_decay)
+model = create_model(input_dim=input_dim, lr = lr, 
+                     weight_decay=weight_decay)
 
 model.summary()
 path = (r'C:\Users\rghig\Dropbox\Kaggle\JaneS\JS2024\data'
         r'\lags_features\models\tf_nn_model10_batch.keras')
 model.load_weights(path)
 
-feature_names = [f"feature_{i:02d}" for i in range(79)] + [f"feature_{i:02d}_lag_1" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
+feature_names = ([f"feature_{i:02d}" for i in range(79)] 
+                 + [f"feature_{i:02d}_lag_1" for i in range(79)] 
+                 + [f"responder_{idx}_lag_1" for idx in range(9)])
 label_name = 'responder_6'
 weight_name = 'weight'
 
 # Load data
 df = pl.scan_parquet(LAGS_FEATURES_TRAINING).collect().to_pandas()
-valid = pl.scan_parquet(LAGS_FEATURES_VALIDATION).collect().to_pandas()
+vld = pl.scan_parquet(LAGS_FEATURES_VALIDATION).collect().to_pandas()
 
 
 # Select subset
 sym = 1
 df_sym = df[df['symbol_id'] == sym]
-valid_sym = valid[valid['symbol_id'] == sym]
+vld_sym = vld[vld['symbol_id'] == sym]
 print(df_sym.head())
 
-feature_names = [f"feature_{i:02d}" for i in range(79)] + [f"feature_{i:02d}_lag_1" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
-label_name = 'responder_6'
-weight_name = 'weight'
-# df = pd.concat([df, valid]).reset_index(drop=True)
+# df = pd.concat([df, vld]).reset_index(drop=True)
 df_sym[feature_names] = df_sym[feature_names].ffill().fillna(0)
-valid_sym[feature_names] = valid_sym[feature_names].ffill().fillna(0)
+vld_sym[feature_names] = vld_sym[feature_names].ffill().fillna(0)
 
 
 X_train = df_sym[ feature_names ]
 y_train = df_sym[ label_name ]
 w_train = df_sym[ "weight" ]
-X_valid = valid_sym[ feature_names ]
-y_valid = valid_sym[ label_name ]
-w_valid = valid_sym[ "weight" ]
+X_vld = vld_sym[ feature_names ]
+y_vld = vld_sym[ label_name ]
+w_vld = vld_sym[ "weight" ]
 
-X_new = X_valid.to_numpy()  # Replace with actual data
+X_new = X_vld.to_numpy()  # Replace with actual data
 predictions = model.predict(X_new)
 
 
 f, axs = plt.subplots(3, figsize=(8, 8),
                       sharey=True)
-axs[0].plot(y_valid.values / y_valid.std())
+axs[0].plot(y_vld.values / y_vld.std())
 axs[1].plot(predictions / predictions.std())
-axs[2].scatter(y_valid.values/ y_valid.std(),
+axs[2].scatter(y_vld.values/ y_vld.std(),
                predictions/ predictions.std())
 plt.show()
 
 
 f, axs = plt.subplots(3, figsize=(8, 8),
                       sharey=True)
-axs[0].plot(y_valid.values)
+axs[0].plot(y_vld.values)
 axs[1].plot(predictions)
-axs[2].scatter(y_valid.values, predictions)
+axs[2].scatter(y_vld.values, predictions)
 plt.show()
 
 
 f, axs = plt.subplots(3, figsize=(8, 8),
                       sharey=True)
-axs[0].plot(y_valid.values / y_valid.std())
+axs[0].plot(y_vld.values / y_vld.std())
 axs[1].plot(predictions / predictions.std())
-axs[2].scatter(y_valid.values/ y_valid.std(),
+axs[2].scatter(y_vld.values/ y_vld.std(),
                predictions/ predictions.std())
 plt.show()
 
@@ -130,9 +131,9 @@ plt.show()
 
 
 # Seed 1234
-# tanh: R² Score on validation data: 0.022405683994293213
-# linear: R² Score on validation data: 0.014503955841064453
+# tanh: R² Score on vldation data: 0.022405683994293213
+# linear: R² Score on vldation data: 0.014503955841064453
 
 # Seed 0
-# tanh: R² Score on validation data: -0.06566083431243896
-# linear: R² Score on validation data: 0.014717578887939453
+# tanh: R² Score on vldation data: -0.06566083431243896
+# linear: R² Score on vldation data: 0.014717578887939453
