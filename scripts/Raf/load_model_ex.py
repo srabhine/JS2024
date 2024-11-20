@@ -106,6 +106,23 @@ axs[2].scatter(y_valid.values/ y_valid.std(),
 plt.show()
 
 
+f, axs = plt.subplots(3, figsize=(8, 8),
+                      sharey=True)
+axs[0].plot(y_valid.values)
+axs[1].plot(predictions)
+axs[2].scatter(y_valid.values, predictions)
+plt.show()
+
+
+f, axs = plt.subplots(3, figsize=(8, 8),
+                      sharey=True)
+axs[0].plot(y_valid.values / y_valid.std())
+axs[1].plot(predictions / predictions.std())
+axs[2].scatter(y_valid.values/ y_valid.std(),
+               predictions/ predictions.std())
+plt.show()
+
+
 f, ax = plt.subplots(1)
 ax.plot(predictions)
 plt.show()
