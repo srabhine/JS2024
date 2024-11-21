@@ -6,7 +6,7 @@ from typing import List
 
 import pandas as pd
 
-from io_lib.paths import DATA_DIR, LAGS_FEATURES_TRAINING
+from io_lib.paths import DATA_DIR, LAGS_FEATURES_TRAIN
 
 
 def get_indexed_dataset():
@@ -33,7 +33,7 @@ def get_symbols_dataset(sym: int = 1):
 def load_data_by_dates(dates: List[int]):
 
     data = [pd.read_parquet(
-        LAGS_FEATURES_TRAINING / 'train_parquet' /
+        LAGS_FEATURES_TRAIN / 'train_parquet' /
         f'date_id={dates[i]}' / '00000000.parquet' for i in dates)]
     data = pd.concat(data, axis=0)
     return data

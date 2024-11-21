@@ -22,5 +22,6 @@ FIGS_DIR = ROOT / 'figures'
 
 TRAIN_DIR = DATA_DIR / 'train_parquet'
 LAGS_FEAT_DIR = DATA_DIR / 'lags_features'
-LAGS_FEATURES_TRAINING = LAGS_FEAT_DIR / 'training_parquet'
-LAGS_FEATURES_VALIDATION = LAGS_FEAT_DIR /'validation_parquet'
+LAGS_FEATURES_TRAIN = LAGS_FEAT_DIR / 'training_parquet'
+LAGS_FEATURES_VALID = LAGS_FEAT_DIR / 'validation_parquet'
+MODELS_DIR = LAGS_FEAT_DIR / 'models'

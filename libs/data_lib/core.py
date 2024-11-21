@@ -1,3 +1,7 @@
+"""
+
+@author:
+"""
 import os
 
 def create_symbol_datasets(df,
@@ -32,4 +36,6 @@ def create_symbol_datasets(df,
         symbol_data.to_csv(file_path, index=False)
 
         print(
-            f"Created dataset for symbol_id {symbol_id} with {len(symbol_data)} rows")
+            f"Created dataset for symbol_id {symbol_id} "
+            f"with {len(symbol_data)} rows")
+

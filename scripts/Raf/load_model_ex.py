@@ -9,8 +9,8 @@ from sklearn.metrics import r2_score
 from tensorflow.keras import (layers, models, optimizers,
                               regularizers, callbacks)
 
-from io_lib.paths import LAGS_FEATURES_TRAINING, \
-    LAGS_FEATURES_VALIDATION
+from io_lib.paths import LAGS_FEATURES_TRAIN, \
+    LAGS_FEATURES_VALID
 
 
 def create_model(input_dim, lr, weight_decay):
@@ -72,8 +72,8 @@ label_name = 'responder_6'
 weight_name = 'weight'
 
 # Load data
-df = pl.scan_parquet(LAGS_FEATURES_TRAINING).collect().to_pandas()
-vld = pl.scan_parquet(LAGS_FEATURES_VALIDATION).collect().to_pandas()
+df = pl.scan_parquet(LAGS_FEATURES_TRAIN).collect().to_pandas()
+vld = pl.scan_parquet(LAGS_FEATURES_VALID).collect().to_pandas()
 
 
 # Select subset
