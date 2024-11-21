@@ -60,10 +60,11 @@ valid_dataset = prepare_dataset(vld_sym, w_valid, feature_names,
 
 lr = 0.01
 weight_decay = 5e-4
+# weight_decay = 0
 
 input_dim = df_sym[feature_names].shape[1]
-out_layer = 'tanh'
-# out_layer = 'linear'
+# out_layer = 'tanh'
+out_layer = 'linear'
 
 model = dnn_model(input_dim=input_dim, lr=lr,
                   weight_decay=weight_decay,
