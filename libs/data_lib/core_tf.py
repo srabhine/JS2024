@@ -6,6 +6,24 @@
 import numpy as np
 import tensorflow as tf
 
+
+def defined_callbacks(path: str):
+    return [
+        tf.keras.callbacks.EarlyStopping(monitor='val_r2_score',
+                                         patience=15, mode='max'),
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath=path,
+            monitor='val_loss', save_best_only=True),
+        tf.keras.callbacks.ReduceLROnPlateau(
+            monitor='val_r2_score',  # Metric to be monitored
+            factor=0.1,  # Factor by which the learning rate will be reduced
+            patience=8,  # Number of epochs with no improvement after which learning rate will be reduced
+            verbose=1,  # Verbosity mode
+            min_lr=1e-6  # Lower bound on the learning rate
+        )
+    ]
+
+
 def get_generator_v3(dataframe, weights, feature_names,
                      label_name, shuffle=True, batch_size=8192):
     def generator():
