@@ -1,6 +1,6 @@
 """
 
-@author: George
+@authors: George, Raffaele
 """
 import os
 import polars as pl
@@ -10,21 +10,11 @@ import pandas as pd
 import random
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
-# from tensorflow.keras import (layers, models, optimizers,
-#                               regularizers, callbacks)
 
 from data_lib.core_tf import prepare_dataset
 from io_lib.paths import LAGS_FEATURES_TRAIN, \
     LAGS_FEATURES_VALID, MODELS_DIR
 from models_lib.dnns import dnn_model
-
-# Prepare datasets
-# def prepare_dataset(dataframe, weights, batch_size=8192):
-#     features = dataframe[feature_names].values
-#     labels = dataframe[label_name].values
-#     dataset = tf.data.Dataset.from_tensor_slices((features, labels, weights))
-#     dataset = dataset.shuffle(buffer_size=1024).batch(batch_size)
-#     return dataset
 
 feature_names = ([f"feature_{i:02d}" for i in range(79)]
                  + [f"feature_{i:02d}_lag_1" for i in range(79)]
@@ -46,12 +36,13 @@ df_sym[feature_names] = df_sym[feature_names].ffill().fillna(0)
 vld_sym[feature_names] = vld_sym[feature_names].ffill().fillna(0)
 
 
-X_train = df_sym[ feature_names ]
-y_train = df_sym[ label_name ]
-w_train = df_sym[ "weight" ]
-X_valid = vld_sym[ feature_names ]
-y_valid = vld_sym[ label_name ]
-w_valid = vld_sym[ "weight" ]
+# Prepare datasets
+X_train = df_sym[feature_names]
+y_train = df_sym[label_name]
+w_train = df_sym["weight"]
+X_valid = vld_sym[feature_names]
+y_valid = vld_sym[label_name]
+w_valid = vld_sym["weight"]
 
 # Set seed
 # seed = 0
@@ -80,8 +71,7 @@ model = dnn_model(input_dim=input_dim, lr=lr,
                   simplified=True)
 model.summary()
 
-path = (str(MODELS_DIR) +
-        f'/tf_nn_model10_batch_{out_layer}.keras')
+path = str(MODELS_DIR) + f'/tf_nn_model10_batch_{out_layer}.keras'
 
 ca = [
     tf.keras.callbacks.EarlyStopping(monitor='val_r2_score',
@@ -124,4 +114,4 @@ if not isinstance(y_valid, np.ndarray):
 r2_metric.update_state(y_true=y_valid, y_pred=predictions)
 r2_score_value = r2_metric.result().numpy()
 
-print(f"R² Score on validation data: {r2_score_value}")
+print(f"R² Score on validation data: {r2_score_value:1.6f}")
