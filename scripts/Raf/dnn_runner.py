@@ -31,11 +31,10 @@ sym = 1
 out_layer = 'tanh'
 # out_layer = 'linear'
 
-# is_transform = False
-is_transform = True
+is_transform = False
 
 cases = ['all', 'feats', 'feats_time_lag',
-         'resp_day_lag', 'top_50']
+         'resp_day_lag', 'top_50', 'transform']
 r2 = {}
 for case in cases:
     if case == 'feats':
@@ -48,10 +47,14 @@ for case in cases:
         feature_names = FEATS_TOP_50
     elif case == 'all':
         feature_names = FEATS + FEATS_TIME_LAG + RESP_DAY_LAG
+    elif case == 'transform':
+        feature_names = FEATS
+        is_transform = True
     else:
         raise ValueError('Invalid case')
 
-    df_sym, vld_sym, X_train, y_train, w_train, X_valid, y_valid, w_valid = \
+    (df_sym, vld_sym, X_train, y_train, w_train,
+     X_valid, y_valid, w_valid) = \
         get_data_by_symbol(feature_names, sym=sym,
                            is_transform=is_transform)
 
@@ -81,9 +84,11 @@ for case in cases:
 
     ca = defined_callbacks(path)
     model.fit(
-        train_dataset.map(lambda x, y, w: (x, y, {'sample_weight': w})),
+        train_dataset.map(
+            lambda x, y, w: (x, y, {'sample_weight': w})),
         epochs=70,
-        validation_data=valid_dataset.map(lambda x, y, w: (x, y, {'sample_weight': w})),
+        validation_data=valid_dataset.map(
+            lambda x, y, w: (x, y, {'sample_weight': w})),
         callbacks=ca
     )
     model.save(path)
