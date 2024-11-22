@@ -10,6 +10,8 @@ FEAT_NAMES = [f'feature_0{i}' for i in range(10)] + \
 
 RESP_NAMES = [f'responder_{i}' for i in range(9)]
 
+IX_IDS = ['date_id', 'time_id', 'symbol_id']
+IX_IDS_BY_SYM = ['symbol_id', 'date_id', 'time_id']
 FEATS = [f"feature_{i:02d}" for i in range(79)]
 FEATS_TIME_LAG = [f"feature_{i:02d}_lag_1" for i in range(79)]
 RESP = [f"responder_{i}" for i in range(9)]
