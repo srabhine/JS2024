@@ -36,7 +36,7 @@ is_transform = False
 cases = ['all', 'feats', 'feats_time_lag',
          'resp_day_lag', 'top_50', 'transform']
 r2 = {}
-for case in cases:
+for case in ['transform']:
     if case == 'feats':
         feature_names = FEATS
     elif case == 'feats_time_lag':
