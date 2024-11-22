@@ -33,11 +33,24 @@ def get_symbols_dataset(sym: int = 1):
     return data_sym
 
 
+def get_features_classification():
+    feat_types = pd.read_csv(DATA_DIR / 'features_types.csv',
+                             index_col=0)
+    feat_types_dic_tmp = feat_types.to_dict()['Type']
+    feat_types_dic = {f'feature_{k:02d}': v for k, v in
+                      feat_types_dic_tmp.items()}
+    return feat_types_dic
+
+
 def get_data_by_symbol(feature_names: List,
-                       sym: int = 1):
+                       sym: int = 1,
+                       is_transform: bool = False,):
     # Load data
     df = pl.scan_parquet(LAGS_FEATURES_TRAIN).collect().to_pandas()
     vld = pl.scan_parquet(LAGS_FEATURES_VALID).collect().to_pandas()
+
+    if is_transform:
+        feat_types_dic = get_features_classification()
 
     # Select subset
     df_sym = df[df['symbol_id'] == sym].copy()

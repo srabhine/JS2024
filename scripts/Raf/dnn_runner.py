@@ -31,6 +31,9 @@ sym = 1
 out_layer = 'tanh'
 # out_layer = 'linear'
 
+# is_transform = False
+is_transform = True
+
 cases = ['all', 'feats', 'feats_time_lag',
          'resp_day_lag', 'top_50']
 r2 = {}
@@ -47,8 +50,10 @@ for case in cases:
         feature_names = FEATS + FEATS_TIME_LAG + RESP_DAY_LAG
     else:
         raise ValueError('Invalid case')
+
     df_sym, vld_sym, X_train, y_train, w_train, X_valid, y_valid, w_valid = \
-        get_data_by_symbol(feature_names, sym=sym)
+        get_data_by_symbol(feature_names, sym=sym,
+                           is_transform=is_transform)
 
     # Set seed
     set_seed(0)
@@ -70,7 +75,8 @@ for case in cases:
                       simplified=True)
     model.summary()
 
-    suffix = f'/dnn_v10_{out_layer}_{case}.keras'
+    suffix = (f'/dnn_v10_{out_layer}_transf_{is_transform}'
+              f'_{case}.keras')
     path = str(MODELS_DIR) + suffix
 
     ca = defined_callbacks(path)
