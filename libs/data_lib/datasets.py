@@ -8,6 +8,7 @@ import pandas as pd
 import polars as pl
 
 from data_lib.variables import TARGET
+from features_lib.core import transform_features
 from io_lib.paths import DATA_DIR, LAGS_FEATURES_TRAIN, \
     LAGS_FEATURES_VALID
 
@@ -50,7 +51,10 @@ def get_data_by_symbol(feature_names: List,
     vld = pl.scan_parquet(LAGS_FEATURES_VALID).collect().to_pandas()
 
     if is_transform:
+        print('Transforming data')
         feat_types_dic = get_features_classification()
+        df = transform_features(df, feat_types_dic)
+        vld = transform_features(df, feat_types_dic)
 
     # Select subset
     df_sym = df[df['symbol_id'] == sym].copy()
