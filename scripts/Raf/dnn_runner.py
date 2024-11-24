@@ -20,7 +20,7 @@ from data_lib.variables import FEATS_TIME_LAG, RESP_DAY_LAG, FEATS, \
 from io_lib.paths import MODELS_DIR
 from models_lib.dnns import dnn_model
 
-case = 'all'
+# case = 'all'
 # case = 'feats'
 # case = 'feats_time_lag'
 # case = 'resp_day_lag'
@@ -28,17 +28,22 @@ case = 'all'
 # feature_names = FEATS
 
 
-# sym = [1]
-sym = SYMBOLS
+# sym = 2
+# sym = SYMBOLS
+sym = [3, 4]
 out_layer = 'tanh'
 # out_layer = 'linear'
 
 
-cases = ['all', 'feats', 'feats_time_lag',
-         'resp_day_lag', 'top_50',
-         'cleanup', 'normalize', 'transform']
+# cases = ['all', 'feats', 'feats_time_lag',
+#          'resp_day_lag', 'top_50',
+#          'cleanup', 'normalize', 'transform']
+cases = ['cleanup']
+# cases = ['cleanup', 'normalize']
+# cases = ['normalize', 'transform']
+
 r2 = {}
-for case in ['cleanup']:
+for case in cases:
     is_transform = False
     feat_types_dic = None
     if case == 'feats':
@@ -91,7 +96,8 @@ for case in ['cleanup']:
                       simplified=True)
     model.summary()
 
-    suffix = (f'/dnn_v10_{out_layer}_ns_{len(sym)}'
+    n = 1 if isinstance(sym, int) else len(sym)
+    suffix = (f'/dnn_v10_{out_layer}_ns_{n}'
               f'_{case}.keras')
     path = str(MODELS_DIR) + suffix
 

@@ -59,12 +59,17 @@ def get_data_by_symbol(feature_names: List,
     # Select subset
     if sym is None:
         sym = SYMBOLS
-    if len(sym) == len(SYMBOLS):
+        df_sym = df.query(f'symbol_id in {sym}')
+        vld_sym = vld.query(f'symbol_id in {sym}')
+    elif isinstance(sym, int):
+        df_sym = df[df['symbol_id'] == sym]
+        vld_sym = vld[vld['symbol_id'] == sym]
+    elif len(sym) == len(SYMBOLS):
         df_sym = df
         vld_sym = vld
     else:
-        df_sym = df[df['symbol_id'] in sym].copy()
-        vld_sym = vld[vld['symbol_id'] in sym].copy()
+        df_sym = df.query(f'symbol_id in {sym}')
+        vld_sym = vld.query(f'symbol_id in {sym}')
     print(df_sym.head())
 
     df_sym[feature_names] = df_sym[feature_names].ffill().fillna(0)

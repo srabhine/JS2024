@@ -31,7 +31,7 @@ def transform_features(data_all: pd.DataFrame,
                        str]]] = None) -> (
         pd.DataFrame):
     data = data_all[IX_IDS_BY_SYM + ['weight'] + FEATS + [
-        TARGET]].copy()
+        TARGET]]
     data.set_index(IX_IDS_BY_SYM, append=True,
                    drop=True, inplace=True)
     data = data.droplevel(0, axis='index')
@@ -77,6 +77,9 @@ def transform_features(data_all: pd.DataFrame,
     df_transform = df_transform.stack(level=0, future_stack=True)
     df_transform.index.names = ['date_id', 'time_id', 'symbol_id']
     df_transform.reset_index(inplace=True)
+    # df_transform['weight'] = df_transform['weight'].fillna(0)  #
+    # # still not enough ...
+    df_transform.fillna(0, inplace=True)
     if len(df_transform) == len(data_all):
         df_transform.index = data_all.index
     else:
