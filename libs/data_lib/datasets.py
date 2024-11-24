@@ -2,7 +2,7 @@
 
 @author: Raffaele M Ghigliazza
 """
-from typing import List
+from typing import List, Dict, Optional
 
 import pandas as pd
 import polars as pl
@@ -45,14 +45,14 @@ def get_features_classification():
 
 def get_data_by_symbol(feature_names: List,
                        sym: int = 1,
-                       is_transform: bool = False,):
+                       is_transform: bool = False,
+                       feat_types_dic: Optional[Dict] = None,):
     # Load data
     df = pl.scan_parquet(LAGS_FEATURES_TRAIN).collect().to_pandas()
     vld = pl.scan_parquet(LAGS_FEATURES_VALID).collect().to_pandas()
 
     if is_transform:
         print('Transforming data')
-        feat_types_dic = get_features_classification()
         df = transform_features(df, feat_types_dic)
         vld = transform_features(df, feat_types_dic)
 
