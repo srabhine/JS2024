@@ -2,12 +2,12 @@
 
 @author: Raffaele M Ghigliazza
 """
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 import pandas as pd
 import polars as pl
 
-from data_lib.variables import TARGET
+from data_lib.variables import TARGET, SYMBOLS
 from features_lib.core import transform_features
 from io_lib.paths import DATA_DIR, LAGS_FEATURES_TRAIN, \
     LAGS_FEATURES_VALID
@@ -44,7 +44,7 @@ def get_features_classification():
 
 
 def get_data_by_symbol(feature_names: List,
-                       sym: int = 1,
+                       sym: Optional[Union[int, List]] = None,
                        is_transform: bool = False,
                        feat_types_dic: Optional[Dict] = None,):
     # Load data
@@ -57,8 +57,19 @@ def get_data_by_symbol(feature_names: List,
         vld = transform_features(df, feat_types_dic)
 
     # Select subset
-    df_sym = df[df['symbol_id'] == sym].copy()
-    vld_sym = vld[vld['symbol_id'] == sym].copy()
+    if sym is None:
+        sym = SYMBOLS
+        df_sym = df.query(f'symbol_id in {sym}')
+        vld_sym = vld.query(f'symbol_id in {sym}')
+    elif isinstance(sym, int):
+        df_sym = df[df['symbol_id'] == sym]
+        vld_sym = vld[vld['symbol_id'] == sym]
+    elif len(sym) == len(SYMBOLS):
+        df_sym = df
+        vld_sym = vld
+    else:
+        df_sym = df.query(f'symbol_id in {sym}')
+        vld_sym = vld.query(f'symbol_id in {sym}')
     print(df_sym.head())
 
     df_sym[feature_names] = df_sym[feature_names].ffill().fillna(0)

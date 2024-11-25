@@ -16,11 +16,11 @@ from data_lib.datasets import get_data_by_symbol, \
     get_features_classification
 from data_lib.random_gen import set_seed
 from data_lib.variables import FEATS_TIME_LAG, RESP_DAY_LAG, FEATS, \
-    TARGET, FEATS_TOP_50
+    TARGET, FEATS_TOP_50, SYMBOLS
 from io_lib.paths import MODELS_DIR
 from models_lib.dnns import dnn_model
 
-case = 'all'
+# case = 'all'
 # case = 'feats'
 # case = 'feats_time_lag'
 # case = 'resp_day_lag'
@@ -28,14 +28,20 @@ case = 'all'
 # feature_names = FEATS
 
 
-sym = 1
+# sym = 2
+# sym = SYMBOLS
+sym = [3, 4]
 out_layer = 'tanh'
 # out_layer = 'linear'
 
 
-cases = ['all', 'feats', 'feats_time_lag',
-         'resp_day_lag', 'top_50',
-         'cleanup', 'normalize', 'transform']
+# cases = ['all', 'feats', 'feats_time_lag',
+#          'resp_day_lag', 'top_50',
+#          'cleanup', 'normalize', 'transform']
+cases = ['cleanup']
+# cases = ['cleanup', 'normalize']
+# cases = ['normalize', 'transform']
+
 r2 = {}
 for case in cases:
     is_transform = False
@@ -90,7 +96,8 @@ for case in cases:
                       simplified=True)
     model.summary()
 
-    suffix = (f'/dnn_v10_{out_layer}_transf_{is_transform}'
+    n = 1 if isinstance(sym, int) else len(sym)
+    suffix = (f'/dnn_v10_{out_layer}_ns_{n}'
               f'_{case}.keras')
     path = str(MODELS_DIR) + suffix
 
@@ -111,7 +118,8 @@ for case in cases:
 
     # Make predictions
     predictions = model.predict(X_new)
-    r2_metric = tf.keras.metrics.R2Score(class_aggregation='uniform_average')
+    r2_metric = tf.keras.metrics.R2Score(
+        class_aggregation='uniform_average')
 
     if not isinstance(y_valid, np.ndarray):
         y_valid = y_valid.to_numpy()  # Convert to numpy array if it is a DataFrame
