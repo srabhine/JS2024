@@ -53,8 +53,11 @@ def get_data_by_symbol(feature_names: List,
 
     if is_transform:
         print('Transforming data')
-        df = transform_features(df, feat_types_dic)
-        vld = transform_features(df, feat_types_dic)
+        df, scalers_mu, scalers_sg = transform_features(
+            df, feat_types_dic)
+        vld, *_ = transform_features(df, feat_types_dic)
+        scalers_mu.to_csv(DATA_DIR / 'scalers_mu.csv')
+        scalers_sg.to_csv(DATA_DIR / 'scalers_sg.csv')
 
     # Select subset
     if sym is None:

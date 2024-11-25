@@ -29,8 +29,8 @@ from models_lib.dnns import dnn_model
 
 
 # sym = 2
-# sym = SYMBOLS
-sym = [3, 4]
+sym = SYMBOLS
+# sym = [3, 4]
 out_layer = 'tanh'
 # out_layer = 'linear'
 
