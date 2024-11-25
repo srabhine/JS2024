@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import StandardScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import polars as pl
+import tensorflow as tf
 
 class FinancialDataset(Dataset):
     def __init__(self, data, feature_names, label_name, sequence_length=10):
