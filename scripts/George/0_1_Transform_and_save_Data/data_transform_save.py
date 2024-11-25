@@ -48,3 +48,4 @@ for i in range(1,10):
     )
     scalers_mu.to_csv(f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/scaler_mu{i}")
     scalers_sg.to_csv(f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/scalers_sg{i}")
+
