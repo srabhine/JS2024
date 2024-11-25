@@ -33,10 +33,13 @@ cases = ['normalize', 'transform']
 
 feature_names = FEATS
 feat_types_dic = get_features_classification()
-path = "E:\Python_Projects\JS2024\GITHUB_C\data\\non_lag_data\\training_parquet" \
-       "\\date_id=1501\\*.parquet"
+# path = "E:\Python_Projects\JS2024\GITHUB_C\data\\non_lag_data\\training_parquet" \
+#        "\\date_id=1501\\*.parquet"
+path ="E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet\partition_id=8"
 df = pl.scan_parquet(path).collect().to_pandas()
 
 df = transform_features(df, feat_types_dic)
-    
-    
+df = pl.DataFrame(df)
+df.write_parquet(
+    f"E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\\train_trans", partition_by = "date_id",
+)
