@@ -2,6 +2,7 @@
 
 @authors: George, Raffaele
 """
+
 # import sys
 # sys.path.append('/home/zt/pyProjects/JaneSt/Team/libs')
 import os
@@ -71,60 +72,3 @@ for case in cases:
         get_data_by_symbol(feature_names, sym=sym,
                            is_transform=is_transform,
                            feat_types_dic=feat_types_dic)
-
-    # Set seed
-    set_seed(0)
-
-    train_dataset = prepare_dataset(df_sym, w_train, feature_names,
-                                    TARGET, batch_size=8129)
-    valid_dataset = prepare_dataset(vld_sym, w_valid, feature_names,
-                                    TARGET, batch_size=8129)
-
-    lr = 0.01
-    weight_decay = 5e-4
-    # weight_decay = 0
-
-    input_dim = df_sym[feature_names].shape[1]
-
-    model = dnn_model(input_dim=input_dim, lr=lr,
-                      weight_decay=weight_decay,
-                      out_layer=out_layer,
-                      simplified=True)
-    model.summary()
-
-    suffix = (f'/dnn_v10_{out_layer}_transf_{is_transform}'
-              f'_{case}.keras')
-    path = str(MODELS_DIR) + suffix
-
-    ca = defined_callbacks(path)
-    model.fit(
-        train_dataset.map(
-            lambda x, y, w: (x, y, {'sample_weight': w})),
-        epochs=70,
-        validation_data=valid_dataset.map(
-            lambda x, y, w: (x, y, {'sample_weight': w})),
-        callbacks=ca
-    )
-    model.save(path)
-
-    # Assume X_new is your new data you want to make predictions on
-    # This should be a NumPy array or a Tensor with shape (num_samples, num_features)
-    X_new = X_valid.to_numpy()  # Replace with actual data
-
-    # Make predictions
-    predictions = model.predict(X_new)
-    r2_metric = tf.keras.metrics.R2Score(class_aggregation='uniform_average')
-
-    if not isinstance(y_valid, np.ndarray):
-        y_valid = y_valid.to_numpy()  # Convert to numpy array if it is a DataFrame
-
-    r2_metric.update_state(y_true=y_valid, y_pred=predictions)
-    r2_score_value = r2_metric.result().numpy()
-
-    print(f"R² Score on validation data: {r2_score_value:1.6f}")
-
-    r2[case] = r2_score_value
-
-
-print(r2)
-print(pd.Series(r2))
