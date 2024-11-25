@@ -2,10 +2,11 @@
 
 @authors: George, Raffaele
 """
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Tuple, Any
 
 import numpy as np
 import pandas as pd
+from pandas import Series, DataFrame
 
 from data_lib.variables import IX_IDS_BY_SYM, FEATS, TARGET
 
@@ -28,8 +29,7 @@ TRANSFORM_MAP = {'cyclic': lambda x: x,
 
 def transform_features(data_all: pd.DataFrame,
                        transf_dic: Optional[Union[str, Dict[str,
-                       str]]] = None) -> (
-        pd.DataFrame):
+                       str]]] = None) -> tuple[Any, Any, Any]:
     data = data_all[IX_IDS_BY_SYM + ['weight'] + FEATS + [
         TARGET]]
     data.set_index(IX_IDS_BY_SYM, append=True,
@@ -39,6 +39,10 @@ def transform_features(data_all: pd.DataFrame,
 
     df_transform = data.copy()
     cols = df_transform.columns.droplevel(1).unique()
+    scalers_mu = df_transform.mean(axis=0)
+    scalers_sg = df_transform.std(axis=0)
+    # Careful because 'weight' is also in the columns
+    # and that is not meaningful
     for c in cols:
         if transf_dic is None:
             if c not in ['weight']:
@@ -85,4 +89,4 @@ def transform_features(data_all: pd.DataFrame,
     else:
         print('Warning: transformation added rows')
 
-    return df_transform
+    return df_transform, scalers_mu, scalers_sg
