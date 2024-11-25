@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
-from data_lib.loading import load_scalers, normalize_test_data
+from data_lib.loading import load_scalers, normalize_test_data, \
+    normalize_predictions
 from data_lib.variables import IX_IDS_BY_SYM, FEATS
 from io_lib.paths import DATA_DIR
 
@@ -39,3 +40,13 @@ f, ax = plt.subplots()
 ax.scatter(test_data[FEATS[1]].values,
            test_norm[FEATS[1]].values)
 plt.show()
+
+
+# Scaling predictions
+# Make sure the predictions are a pd.Series indexed by symbol_id
+y_pred = pd.Series(np.random.randn(len(test_data.index)),
+                   index=test_data.index)
+
+predictions = normalize_predictions(y_pred,
+                                    scalers_mu=scalers_mu,
+                                    scalers_sg=scalers_sg)
