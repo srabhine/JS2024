@@ -8,7 +8,7 @@ from typing import Union, Any, Optional
 import pandas as pd
 import polars as pl
 
-from data_lib.variables import FEATS
+from data_lib.variables import FEATS, TARGET
 from io_lib.paths import DATA_DIR
 
 
@@ -74,4 +74,12 @@ def normalize_test_data(test_data: pd.DataFrame,
     test_norm = (test_tmp - scalers_mu[FEATS]) / scalers_sg[FEATS]
 
     return test_norm, scalers_mu, scalers_sg
+
+
+def normalize_predictions(pred_norm: pd.Series,
+                          scalers_mu: pd.DataFrame,
+                          scalers_sg: pd.DataFrame):
+    pred_norm.name = TARGET
+    return (pred_norm + scalers_mu[TARGET]) * scalers_sg[TARGET]
+
 
