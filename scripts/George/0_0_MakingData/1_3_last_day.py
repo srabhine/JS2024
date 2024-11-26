@@ -4,7 +4,9 @@ import numpy as np
 
 start_date = 0
 last_train_date = 1600
-feature_names = (["symbol_id", "date_id", "time_id", "weight"] +[f"feature_{i:02d}" for i in range(79)] + [f"responder_6"])
+feature_names = (["symbol_id", "date_id", "time_id", "weight"] +
+                 [f"feature_{i:02d}" for i in range(79)] +
+                 [f"responder_6"])
 
 
 def get_all_data(start_date):
@@ -17,6 +19,7 @@ def get_all_data(start_date):
         pl.col("date_id").gt(start_date)
     )
     return data # lazy dataframe
+
 
 def get_last_day_data(data):
     data = data.select(pl.col(feature_names))
