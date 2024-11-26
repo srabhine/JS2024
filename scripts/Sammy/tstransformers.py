@@ -38,14 +38,20 @@ class PositionalEncoding(nn.Module):
 
         position = torch.arange(max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2) * (-np.log(10000.0) / d_model))
-        pe = torch.zeros(max_len, d_model)
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = torch.zeros(1, max_len, d_model)  # Changed to include batch dimension first
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + self.pe[:x.size(0)]
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, embedding_dim]
+        """
+        x = x + self.pe[:, :x.size(1)]  # Changed indexing to match batch_first=True
         return self.dropout(x)
+    
+
 
 class TransformerModel(nn.Module):
     def __init__(self, input_dim, d_model=64, nhead=4, num_layers=2, dropout=0.2):
@@ -66,7 +72,7 @@ class TransformerModel(nn.Module):
             nhead=nhead,
             dim_feedforward=d_model * 4,
             dropout=dropout,
-            batch_first=True  # Important for batch processing
+            batch_first=True
         )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers)
         
@@ -82,35 +88,62 @@ class TransformerModel(nn.Module):
         # x shape: [batch_size, seq_len, input_dim]
         
         # Project to d_model dimensions
-        x = self.encoder(x)
+        x = self.encoder(x)  # [batch_size, seq_len, d_model]
         
         # Add positional encoding
-        x = self.pos_encoder(x)
+        x = self.pos_encoder(x)  # [batch_size, seq_len, d_model]
         
         # Pass through transformer
-        x = self.transformer_encoder(x)
+        x = self.transformer_encoder(x)  # [batch_size, seq_len, d_model]
         
         # Take the last sequence element for prediction
-        x = x[:, -1, :]
+        x = x[:, -1, :]  # [batch_size, d_model]
         
         # Decode to output
-        x = self.decoder(x)
+        x = self.decoder(x)  # [batch_size, 1]
         
         return x
 
 def load_data(train_path, start_id, end_id):
+    """
+    Load and combine parquet files from specified date_id range
+    
+    Args:
+        train_path (str): Base path to the training data directory
+        start_id (int): Starting date_id
+        end_id (int): Ending date_id (inclusive)
+    
+    Returns:
+        pd.DataFrame: Combined and processed DataFrame
+    """
     folder_paths = [
-        f"{train_path}/train_parquet_{partition_id}.parquet"
+        f"{train_path}/date_id={partition_id}/00000000.parquet"
         for partition_id in range(start_id, end_id + 1)
     ]
-    lazy_frames = [pl.scan_parquet(path) for path in folder_paths]
+    
+    # Check if files exist before loading
+    valid_paths = []
+    for path in folder_paths:
+        try:
+            if pl.scan_parquet(path) is not None:
+                valid_paths.append(path)
+        except Exception as e:
+            print(f"Warning: Could not load file {path}: {str(e)}")
+    
+    if not valid_paths:
+        raise ValueError("No valid parquet files found in the specified range")
+    
+    # Load and combine data
+    lazy_frames = [pl.scan_parquet(path) for path in valid_paths]
     combined_lazy_df = pl.concat(lazy_frames)
     data = combined_lazy_df.collect().to_pandas()
     
     # Forward fill and fill remaining NaNs with 0
     feature_names = [f"feature_{i:02d}" for i in range(79)]
     data[feature_names] = data[feature_names].ffill().fillna(0)
+    
     return data
+
 
 class R2Score:
     def __init__(self):
@@ -143,6 +176,7 @@ def evaluate_model(model, data_loader, device, criterion):
     with torch.no_grad():
         for features, labels in data_loader:
             features, labels = features.to(device), labels.to(device)
+            labels = labels.view(-1, 1)
             outputs = model(features)
             loss = criterion(outputs, labels)
             all_losses.append(loss.item())
@@ -171,6 +205,7 @@ def train_model(model, train_loader, test_loader, device, epochs=1000):
         
         for features, labels in train_loader:
             features, labels = features.to(device), labels.to(device)
+            labels = labels.view(-1, 1)
             
             optimizer.zero_grad()
             outputs = model(features)
@@ -221,10 +256,9 @@ def main():
     batch_size = 32
     
     # Load data
-    train_path = "/home/zt/pyProjects/JaneSt/Team/data/transformed_data"
-    train_data = load_data(train_path, start_id=4, end_id=7)
-    valid_data = load_data(train_path, start_id=8, end_id=9)
-    
+    train_path = "data/lags_features/training_parquet"
+    train_data = load_data(train_path, start_id=501, end_id=507) 
+    valid_data = load_data(train_path, start_id=508, end_id=510)
     # Create datasets
     train_dataset = FinancialDataset(train_data, feature_names, 'responder_6', sequence_length)
     valid_dataset = FinancialDataset(valid_data, feature_names, 'responder_6', sequence_length)
