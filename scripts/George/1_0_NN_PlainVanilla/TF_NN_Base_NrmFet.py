@@ -109,3 +109,4 @@ model.fit(
     verbose=1,                           # Verbose output during training
     shuffle=True
 )
+
