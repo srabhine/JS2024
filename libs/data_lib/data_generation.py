@@ -50,7 +50,8 @@ lags = lags.with_columns(
     date_id = pl.col('date_id') + 1,  # lagged by 1 day
     )
 lags = lags.group_by(["date_id", "symbol_id"],
-                     maintain_order=True).last()  # pick up last record of previous date
+                     maintain_order=True).last()
+# pick up last record of previous date
 
 
 # Merge training data and lags data
@@ -61,7 +62,8 @@ lag_feature = lag_feature.rename(CONFIG.lag_feature_rename)
 lag_feature = lag_feature.with_columns(
     time_id = pl.col('time_id') + 1)
 lag_feature = lag_feature.group_by(
-    ["date_id", "time_id" ,"symbol_id"], maintain_order=True).last()  # pick up last record of previous date
+    ["date_id", "time_id" ,"symbol_id"], maintain_order=True).last()
+# pick up last record of previous date
 train = train.join(lag_feature,
                    on=["date_id", "time_id" ,"symbol_id"],
                    how="left")
@@ -71,7 +73,8 @@ train = train.join(lag_feature,
 len_train   = train.select(pl.col("date_id")).collect().shape[0]
 valid_records = int(len_train * CONFIG.valid_ratio)
 len_ofl_mdl = len_train - valid_records
-last_tr_dt  = train.select(pl.col("date_id")).collect().row(len_ofl_mdl)[0]
+last_tr_dt  = train.select(
+    pl.col("date_id")).collect().row(len_ofl_mdl)[0]
 
 print(f"\n len_train = {len_train}")
 print(f"\n len_ofl_mdl = {len_ofl_mdl}")
@@ -82,11 +85,7 @@ validation_data = train.filter(pl.col("date_id").gt(last_tr_dt))
 
 # Save data as parquets
 training_data.collect().\
-write_parquet(
-    LAGS_FEATURES_TRAIN, partition_by ="date_id",
-)
+write_parquet(LAGS_FEATURES_TRAIN, partition_by ="date_id",)
 
 validation_data.collect().\
-write_parquet(
-    LAGS_FEATURES_VALID, partition_by ="date_id",
-)
+write_parquet(LAGS_FEATURES_VALID, partition_by ="date_id",)
