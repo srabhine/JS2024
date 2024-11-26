@@ -46,9 +46,9 @@ for i in range(1,2):
     df, scalers_mu, scalers_sg = transform_features(df, feat_types_dic)
     df = pl.DataFrame(df)
 
-    # df.write_parquet(
-    #     f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/train_parquet_{i}.parquet",
-    # )
-    # scalers_mu.to_csv(f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/scaler_mu{i}")
-    # scalers_sg.to_csv(f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/scalers_sg{i}")
+    df.write_parquet(
+        f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/train_parquet_{i}.parquet",
+    )
+    scalers_mu.to_csv(f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/scaler_mu{i}")
+    scalers_sg.to_csv(f"/home/zt/pyProjects/JaneSt/Team/data/transformed_data/scalers_sg{i}")
 
