@@ -8,7 +8,7 @@ import pandas as pd
 import polars as pl
 
 from data_lib.loading import load_scalers, normalize_test_data, \
-    normalize_predictions
+    denormalize_predictions
 from data_lib.variables import IX_IDS_BY_SYM, FEATS
 from io_lib.paths import DATA_DIR
 
@@ -47,6 +47,5 @@ plt.show()
 y_pred = pd.Series(np.random.randn(len(test_data.index)),
                    index=test_data.index)
 
-predictions = normalize_predictions(y_pred,
-                                    scalers_mu=scalers_mu,
-                                    scalers_sg=scalers_sg)
+predictions = denormalize_predictions(y_pred, scalers_mu=scalers_mu,
+                                      scalers_sg=scalers_sg)

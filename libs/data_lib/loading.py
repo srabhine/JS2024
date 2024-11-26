@@ -78,14 +78,15 @@ def normalize_test_data(test_data: pd.DataFrame,
         scalers_sg = data_tmp['sg']
 
 
-    test_norm = (test_tmp[FEATS] - scalers_mu[FEATS]) / scalers_sg[FEATS]
+    test_norm = ((test_tmp[FEATS] - scalers_mu[FEATS]) /
+                 scalers_sg[FEATS])
 
     return test_norm, scalers_mu, scalers_sg
 
 
-def normalize_predictions(pred_norm: pd.Series,
-                          scalers_mu: pd.DataFrame,
-                          scalers_sg: pd.DataFrame):
+def denormalize_predictions(pred_norm: pd.Series,
+                            scalers_mu: pd.DataFrame,
+                            scalers_sg: pd.DataFrame):
     pred_norm.name = TARGET
     return (pred_norm + scalers_mu[TARGET]) * scalers_sg[TARGET]
 
