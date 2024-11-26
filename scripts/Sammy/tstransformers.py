@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import polars as pl
 import tensorflow as tf
+from libs.one_big_lib import stack_features_by_sym
 
 class FinancialDataset(Dataset):
     def __init__(self, data, feature_names, label_name, sequence_length=10):
@@ -188,7 +189,7 @@ def evaluate_model(model, data_loader, device, criterion):
     
     return avg_loss, r2
 
-def train_model(model, train_loader, test_loader, device, epochs=1000):
+def train_model(model, train_loader, test_loader, device, epochs=100):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3, verbose=True)
@@ -259,6 +260,15 @@ def main():
     train_path = "data/lags_features/training_parquet"
     train_data = load_data(train_path, start_id=501, end_id=507) 
     valid_data = load_data(train_path, start_id=508, end_id=510)
+    train_squared = stack_features_by_sym(train_data)
+    valid_squared = stack_features_by_sym(valid_data)
+    
+    sym = 1
+
+    train_data = train_data[train_data['symbol_id']==sym]
+    valid_data = valid_data[valid_data['symbol_id']==sym]
+
+    
     # Create datasets
     train_dataset = FinancialDataset(train_data, feature_names, 'responder_6', sequence_length)
     valid_dataset = FinancialDataset(valid_data, feature_names, 'responder_6', sequence_length)
@@ -283,3 +293,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+#### tensor(time, features, symbol)
+
+
+### figuring out how to save the model and load it on kaggle.
+
+#### Last 98 days for training, validation is the last 2 days and see how it will go. 
