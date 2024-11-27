@@ -5,7 +5,7 @@ For submission: copy and paste the whole file except the '__main__'
 @author: Raffaele M Ghigliazza
 """
 import copy
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -75,6 +75,13 @@ def check_cols(cols: List, df: pd.DataFrame) -> List:
         if col in df.columns:
             cols_valid.append(col)
     return cols_valid
+
+
+def get_features_classification(file_path: Optional[Any] = None):
+    if file_path is None:
+        raise ValueError
+    feat_types = pd.read_csv(file_path, index_col=0)
+    return feat_types.to_dict()['Type']
 
 
 def stack_features_by_sym(data_all: pd.DataFrame,
@@ -253,34 +260,44 @@ def transform_data(
 if __name__ == '__main__':
     import polars as pl
     from matplotlib import pyplot as plt
-    from data_lib.datasets import get_features_classification
-    from io_lib.paths import LAGS_FEATURES_TRAIN
+    from io_lib.paths import LAGS_FEATURES_TRAIN, DATA_DIR
 
     data_tmp = pl.scan_parquet(
         LAGS_FEATURES_TRAIN).collect().to_pandas()
 
-    # Cleanup
-    data_by_sym = stack_features_by_sym(data_tmp)
-    data_cleaned = unstack_features_by_sym(data_by_sym)
-    print(data_tmp.shape, data_cleaned.shape)
-
-    # Normalization
-    s_mu, s_sg = calc_scalers(data_tmp, transformation='norm')
-    s_mu, s_sg = calc_scalers(data_tmp,
-                              transformation={'feature_71': 'norm',
-                                              'responder_6': 'none'},
-                                  )
+    # # Cleanup
+    # data_by_sym = stack_features_by_sym(data_tmp)
+    # data_cleaned = unstack_features_by_sym(data_by_sym)
+    # print(data_tmp.shape, data_cleaned.shape)
+    #
+    # # Normalization
+    # s_mu, s_sg = calc_scalers(data_tmp, transformation='norm')
+    # s_mu, s_sg = calc_scalers(data_tmp,
+    #                           transformation={'feature_71': 'norm',
+    #                                           'responder_6': 'none'},
+    #                               )
 
     # Transformation
-    feat_types_dic = get_features_classification()
+    file_path = DATA_DIR / 'features_types_with_resp.csv'
+    feat_types_dic = get_features_classification(file_path)
     feat_types_dic['responder_6'] = 'none'
     feat_types_dic['responder_6'] = '0_1'
     feat_types_dic['responder_6'] = '-1_1'
     feat_types_dic['responder_6'] = 'tanh'
+    feat_types_dic['responder_6'] = 'norm'
+
     data_transf, params = transform_data(
         data_tmp, transformation=feat_types_dic)
 
     print(params)
+
+    import pickle
+
+    with open(DATA_DIR / 'params.p', 'wb') as fp:
+        pickle.dump(params, fp)
+
+    # with open('params.p', 'rb') as fp:
+    #     data = pickle.load(fp)
 
     # data_org = data_tmp.set_index(['date_id', 'time_id',
     #                                        'symbol_id'])
