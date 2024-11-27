@@ -195,6 +195,40 @@ def transform_data(
         data_transformed)
     return data_transformed, params
 
+def transform_data_2(
+        data_all: pd.DataFrame,
+        feature_names: Optional[List] = None,
+        transformation: Optional[Union[str,
+        Dict[str, str]]] = None):
+    data_by_sym = stack_features_by_sym(data_all,feature_names=feature_names)
+    # (date_id, time_id) x (features+, 'symbol_id')
+    transf_dic = get_transformation_dic(data_all,transformation=transformation)
+    data_transformed = data_by_sym.copy()
+    scalers_mu = data_transformed.mean(axis=0)
+    scalers_sg = data_transformed.std(axis=0)
+    cols = data_transformed.columns.droplevel(1).unique()
+    for c in cols:
+        if transf_dic[c] in ['norm', 'normal']:
+            if c not in ['symbol_id', 'date_id','time_id', 'weight', 'responder_6']:
+                data_transformed[c] = (data_transformed[c] - data_transformed[c].mean()) / data_transformed[c].std()
+    
+    mix = pd.MultiIndex.from_tuples([c[1], c[0]] for c in data_transformed.columns)
+    data_transformed.columns = mix
+    data_transformed = data_transformed.stack(level=0, future_stack=True)
+    data_transformed.index.names = ['date_id', 'time_id', 'symbol_id']
+    data_transformed.reset_index(inplace=True)
+    # df_transform['weight'] = df_transform['weight'].fillna(0)  #
+    # # still not enough ...
+    data_transformed.fillna(0, inplace=True)
+    if len(data_transformed) == len(data_all):
+        data_transformed.index = data_all.index
+    else:
+        print('Warning: transformation added rows')
+        
+        
+    return data_transformed, scalers_mu, scalers_sg
+
+
 
 if __name__ == '__main__':
     import polars as pl
@@ -202,38 +236,40 @@ if __name__ == '__main__':
     from data_lib.datasets import get_features_classification
     from io_lib.paths import LAGS_FEATURES_TRAIN
 
-    data_tmp = pl.scan_parquet(
+    data_all = pl.scan_parquet(
         LAGS_FEATURES_TRAIN).collect().to_pandas()
 
-    # Cleanup
-    data_by_sym = stack_features_by_sym(data_tmp)
-    data_cleaned = unstack_features_by_sym(data_by_sym)
-    print(data_tmp.shape, data_cleaned.shape)
-
-    # Normalization
-    s_mu, s_sg = calc_scalers(data_tmp, transformation='norm')
-    s_mu, s_sg = calc_scalers(data_tmp,
-                              transformation={'feature_71': 'norm',
-                                              'responder_6': 'none'},
-                                  )
-
-    # Transformation
+    # # Cleanup
+    # data_by_sym = stack_features_by_sym(data_all)
+    # data_cleaned = unstack_features_by_sym(data_by_sym)
+    # print(data_all.shape, data_cleaned.shape)
+    #
+    # # Normalization
+    # s_mu, s_sg = calc_scalers(data_all, transformation='norm')
+    # s_mu, s_sg = calc_scalers(data_all,
+    #                           transformation={'feature_71': 'norm',
+    #                                           'responder_6': 'none'},
+    #                               )
+    #
+    # # Transformation
     feat_types_dic = get_features_classification()
-    feat_types_dic['responder_6'] = '0_1'
-    feat_types_dic['responder_6'] = '-1_1'
-    feat_types_dic['responder_6'] = 'tanh'
-    data_transf, params = transform_data(
-        data_tmp, transformation=feat_types_dic)
-
-    print(params)
-
-    data_org = data_tmp.set_index(['date_id', 'time_id',
-                                           'symbol_id'])
-    data_t = data_transf.set_index(['date_id', 'time_id',
-                                           'symbol_id'])
-    data_plot = pd.concat((data_org[TARGET], data_t[TARGET]),
-                          axis=1, keys=['raw', 'transf']).dropna()
-
-    f, ax = plt.subplots()
-    ax.scatter(data_plot.iloc[:, 0], data_plot.iloc[:, 1])
-    plt.show()
+    # # feat_types_dic['responder_6'] = '0_1'
+    # feat_types_dic['responder_6'] = None
+    # # feat_types_dic['responder_6'] = 'tanh'
+    # data_transf, params = transform_data(
+    #     data_all, transformation=feat_types_dic)
+    #
+    # print(params)
+    
+    data_transformed, scalers_mu, scalers_sg = transform_data_2(data_all, transformation=feat_types_dic)
+    #
+    # data_org = data_tmp.set_index(['date_id', 'time_id',
+    #                                        'symbol_id'])
+    # data_t = data_transf.set_index(['date_id', 'time_id',
+    #                                        'symbol_id'])
+    # data_plot = pd.concat((data_org[TARGET], data_t[TARGET]),
+    #                       axis=1, keys=['raw', 'transf']).dropna()
+    #
+    # f, ax = plt.subplots()
+    # ax.scatter(data_plot.iloc[:, 0], data_plot.iloc[:, 1])
+    # plt.show()
