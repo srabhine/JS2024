@@ -173,8 +173,7 @@ def transform_data(
                     params[f] = {'shift': pd.Series(index=symbol_ids)}
                 for s in symbol_ids:
                     ds = data_by_sym[(f, s)]
-                    a = 1.1 * ds.min() if ds.min() < 0 else 0.9
-                    params[f]['shift'].loc[s] = a
+                    a = 1.1 * ds.min() if ds.min() < 0 else 0.9 * ds.min()
                     data_transformed[(f, s)] = \
                         np.log(data_by_sym[(f, s)] - a)
             elif transf_dic[f] == '0_1':
