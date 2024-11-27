@@ -195,6 +195,8 @@ def transform_data(
         data_transformed)
     return data_transformed, params
 
+# to only normalize selected data
+# params dict is hard to use, so not using it for now.
 def transform_data_2(
         data_all: pd.DataFrame,
         feature_names: Optional[List] = None,
