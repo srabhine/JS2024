@@ -49,8 +49,10 @@ def load_data(train_path,start_id,end_id):
 
 
 
-train_path = "/home/zt/pyProjects/JaneSt/Team/data/transformed_data"
-model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/2_base_model_trans_fet"
+# train_path = "/home/zt/pyProjects/JaneSt/Team/data/transformed_data"
+train_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data"
+# model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/2_base_model_trans_fet"
+model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
 model_saving_name = "model_2_Base_transFet_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
@@ -65,11 +67,11 @@ data_valid = load_data(train_path,start_id=8,end_id=9)
 X_train = data_train[ feature_names ]
 y_train = data_train[ label_name    ]
 w_train = data_train[ "weight"      ]
+del data_train
+
 X_valid = data_valid[ feature_names ]
 y_valid = data_valid[ label_name    ]
 w_valid = data_valid[ "weight"      ]
-
-del data_train
 del data_valid
 
 
@@ -103,7 +105,7 @@ model.fit(
     y=y_train,                          # Target labels for training
     sample_weight=w_train,              # Sample weights for training
     validation_data=(X_valid, y_valid, w_valid),  # Validation data
-    batch_size=8092,                      # Batch size
+    batch_size=3000,                      # Batch size
     epochs=100,                        # Number of epochs
     callbacks=ca,                # Callbacks list, if any
     verbose=1,                           # Verbose output during training

@@ -1,9 +1,9 @@
 
-from one_big_lib import transform_data_2
+from one_big_lib import transform_data
 from data_lib.datasets import get_features_classification
 import polars as pl
 from features_lib.core import transform_features
-
+import pickle
 
 
 
@@ -16,14 +16,15 @@ for i in range(1,10):
         # f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet/partition_id={i}"
     
         
-    df = pl.scan_parquet(path).collect().to_pandas()
+    data = pl.scan_parquet(path).collect().to_pandas()
+    feat_types_dic['responder_6'] = 'none'
+    data_transf, params = transform_data(data, transformation=feat_types_dic)
     
-    df, scalers_mu, scalers_sg = transform_data_2(df, transformation=feat_types_dic)
-    df = pl.DataFrame(df)
+    data_transf = pl.DataFrame(data_transf)
 
-    df.write_parquet(
-        f"E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\\train_parquet_{i}.parquet",
+    data_transf.write_parquet(
+        f"E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data2\\train_parquet_{i}.parquet",
     )
-    scalers_mu.to_csv(f"E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\\scalers_mu{i}.csv")
-    scalers_sg.to_csv(f"E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\\scalers_sg{i}.csv")
-
+    
+    with open(f"E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data2\\params_{i}.pkl", 'wb') as file:
+        pickle.dump(params, file)

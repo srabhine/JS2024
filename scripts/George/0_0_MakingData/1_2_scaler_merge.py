@@ -22,7 +22,7 @@ def pool_scalers(path, start, end):
 
 
 
-file_path_mu = "E:/Python_Projects/JS2024/GITHUB_C/data/transformed_data/scaler_mu{}.csv"
+file_path_mu = "E:/Python_Projects/JS2024/GITHUB_C/data/transformed_data/scalers_mu{}.csv"
 merged_data = pool_scalers(path=file_path_mu, start=1, end=9)
 scaler_columns = [col for col in merged_data.columns if 'scaler' in col]
 merged_data['0'] = merged_data[scaler_columns].mean(axis=1)
@@ -34,7 +34,7 @@ scaler_mu.to_csv('E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_0_MakingD
 
 
 file_path_sg = "E:/Python_Projects/JS2024/GITHUB_C/data/transformed_data/scalers_sg{}.csv"
-merged_data = pool_scalers(path=file_path_sg, start=1, end=10)
+merged_data = pool_scalers(path=file_path_sg, start=1, end=9)
 scaler_columns = [col for col in merged_data.columns if 'scaler' in col]
 merged_data['0'] = np.sqrt((merged_data[scaler_columns]**2).mean(axis=1))
 scaler_sg = merged_data[['feature', 'symbol_id', '0']]
@@ -43,5 +43,5 @@ scaler_sg.index.name = None
 scaler_sg.to_csv('E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_0_MakingData\made_scalers\scalers_sg.csv')
 
 
-test1 = pd.read_csv('E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\scaler_mu1.csv', index_col=0)
-test2 = pd.read_csv('E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\scaler_mu2.csv', index_col=0)
+# test1 = pd.read_csv('E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\scaler_mu1.csv', index_col=0)
+# test2 = pd.read_csv('E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data\scaler_mu2.csv', index_col=0)
