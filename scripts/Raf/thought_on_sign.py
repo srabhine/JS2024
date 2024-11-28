@@ -40,3 +40,21 @@ X_encoded = encoder.transform(y_s.values.reshape(-1, 1))
 
 a = X_encoded.todense()
 print(a)
+
+# Decoding
+Y_pred = np.random.rand(10, 3)
+Y_pred = Y_pred / Y_pred.sum(axis=1).reshape(-1, 1)
+# Y_pred.sum(axis=1)
+
+ix = np.argmax(Y_pred, axis=1)
+y_pred = np.zeros(len(ix))
+for i in range(len(ix)):
+    y_pred[i] = classes[ix[i]]
+
+
+
+
+
+
+
+
