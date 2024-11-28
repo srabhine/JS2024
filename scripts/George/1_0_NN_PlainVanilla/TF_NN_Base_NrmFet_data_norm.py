@@ -39,15 +39,15 @@ def create_model(input_dim, lr, weight_decay):
 def load_data(path, start_dt, end_dt):
     data = pl.scan_parquet(path
                            ).select(
-            pl.int_range(pl.len(), dtype=pl.UInt32).alias("id"),
-            pl.all(),
+        pl.int_range(pl.len(), dtype=pl.UInt32).alias("id"),
+        pl.all(),
     ).filter(
-            pl.col("date_id").gt(start_dt),
-            pl.col("date_id").le(end_dt),
+        pl.col("date_id").gt(start_dt),
+        pl.col("date_id").le(end_dt),
     )
-    
+
     data = data.collect().to_pandas()
-    
+
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     data = data.fillna(0)
     return data
@@ -59,11 +59,12 @@ def get_features_classification(file_path: Optional[Any] = None):
     feat_types = pd.read_csv(file_path, index_col=0)
     return feat_types.to_dict()['Type']
 
-def get_norm_features_dict():
-	file_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
-	feat_types_dic = get_features_classification(file_path)
-	features_to_scale = [feature for feature, ftype in feat_types_dic.items() if ftype == 'normal']
-	return features_to_scale
+
+def get_norm_features_dict(file_path):
+    feat_types_dic = get_features_classification(file_path)
+    features_to_scale = [feature for feature, ftype in feat_types_dic.items() if ftype == 'normal']
+    return features_to_scale
+
 
 
 # Function to scale data using loaded scalers
@@ -80,55 +81,64 @@ def scale_data_in_place(data, scalers, features_to_scale):
             # Handle cases where a scaler is missing for a particular symbol_id
             print(f"Warning: No scaler found for symbol_id {symbol_id}. Skipping scaling for this group.")
 
+    return data
 
-path_win = f"E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
-path_linux = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
 
-train_path = "/home/zt/pyProjects/JaneSt/Team/data/transformed_data"
-# train_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data"
-model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/3_base_model_mean_data"
+
+is_linux = True
+if is_linux:
+    path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
+    scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/all_scalers.pkl"
+    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/5_base_norm"
+    feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
+
+else:
+    path = f"E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
+    scaler_filename = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\all_scalers.pkl'
+    feature_dict_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
+
+
+
+
+
 # model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
-model_saving_name = "model_3_Base_transFet_{epoch:02d}.keras"
+model_saving_name = "model_5_norm_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
-
-
-features_to_scale = get_norm_features_dict()
-data_train = load_data(path_win, start_dt=1200, end_dt=1400)
-data_valid = load_data(path_win, start_dt=1401, end_dt=1500)
+features_to_scale = get_norm_features_dict(feature_dict_path)
+data_train = load_data(path, start_dt=500, end_dt=1500)
+data_valid = load_data(path, start_dt=1501, end_dt=1690)
 
 # Load all scalers from the file
-scaler_filename = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\all_scalers.pkl'
+
+
 with open(scaler_filename, 'rb') as f:
     loaded_scalers = pickle.load(f)
 
 # Apply scaling to both data_train and data_valid in-place
-scale_data_in_place(data_train, loaded_scalers, features_to_scale)
-scale_data_in_place(data_valid, loaded_scalers, features_to_scale)
+data_train = scale_data_in_place(data_train, loaded_scalers, features_to_scale)
+data_valid = scale_data_in_place(data_valid, loaded_scalers, features_to_scale)
 
 
 
-X_train = data_train[ feature_names ]
-y_train = data_train[ label_name    ]
-w_train = data_train[ "weight"      ]
+X_train = data_train[feature_names]
+y_train = data_train[label_name]
+w_train = data_train["weight"]
 del data_train
 
-X_valid = data_valid[ feature_names ]
-y_valid = data_valid[ label_name    ]
-w_valid = data_valid[ "weight"      ]
+X_valid = data_valid[feature_names]
+y_valid = data_valid[label_name]
+w_valid = data_valid["weight"]
 del data_valid
-
-
 
 
 lr = 0.01
 weight_decay = 1e-6
 input_dimensions = X_train.shape[1]
 model = create_model(input_dimensions, lr, weight_decay)
-
 
 ca = [
     tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=25, mode='max'),
@@ -145,20 +155,45 @@ ca = [
 
 ]
 
-
-
 model.fit(
     x=X_train,  # Input features for training
-    y=y_train,                          # Target labels for training
-    sample_weight=w_train,              # Sample weights for training
+    y=y_train,  # Target labels for training
+    sample_weight=w_train,  # Sample weights for training
     validation_data=(X_valid, y_valid, w_valid),  # Validation data
-    batch_size=8029,                      # Batch size
-    epochs=100,                        # Number of epochs
-    callbacks=ca,                # Callbacks list, if any
-    verbose=1,                           # Verbose output during training
+    batch_size=8029,  # Batch size
+    epochs=100,  # Number of epochs
+    callbacks=ca,  # Callbacks list, if any
+    verbose=1,  # Verbose output during training
     shuffle=True
 )
 
 
+def calculate_r2(y_true, y_pred, weights):
+    # Convert inputs to numpy arrays and check their shapes
+    y_true = np.asarray(y_true).flatten()
+    y_pred = np.asarray(y_pred).flatten()
+    weights = np.asarray(weights).flatten()
 
+    if not (y_true.shape == y_pred.shape == weights.shape):
+        raise ValueError(
+            f'Shape mismatch: y_true {y_true.shape}, y_pred {y_pred.shape}, weights {weights.shape}'
+        )
 
+    # Calculate weighted mean of y_true
+    weighted_mean_true = np.sum(weights * y_true) / np.sum(weights)
+
+    # Calculate the numerator and denominator for R²
+    numerator = np.sum(weights * (y_true - y_pred) ** 2)
+    denominator = np.sum(weights * (y_true - weighted_mean_true) ** 2)
+
+    # Prevent division by zero
+    if denominator == 0:
+        return float('nan')
+
+    r2_score = 1 - (numerator / denominator)
+
+    return r2_score
+
+y_pred = model.predict(X_valid)
+pred_r2_score = calculate_r2(y_valid, y_pred, w_valid)
+print("R2 score: {:.8f}".format(pred_r2_score))
