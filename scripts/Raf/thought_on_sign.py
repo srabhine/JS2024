@@ -31,12 +31,7 @@ y_s = np.sign(y)
 
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
-X_num = df.select_dtypes(exclude='object')
-X_cat = df.select_dtypes(include='object')
 encoder = OneHotEncoder(handle_unknown='error')
-X_encoded = encoder.fit_transform(y_s.to_frame())
-print(X_encoded)
-
 classes = [-1, 0, 1]
 enc = LabelEncoder()
 encoder.fit(np.array(classes).reshape(-1, 1))
