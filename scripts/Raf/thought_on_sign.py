@@ -35,6 +35,9 @@ encoder = OneHotEncoder(handle_unknown='error')
 classes = [-1, 0, 1]
 enc = LabelEncoder()
 encoder.fit(np.array(classes).reshape(-1, 1))
+X_classes = encoder.transform(np.array(classes).reshape(-1, 1))
+a = X_classes.todense()
+print(a)
 
 X_encoded = encoder.transform(y_s.values.reshape(-1, 1))
 
@@ -51,7 +54,7 @@ y_pred = np.zeros(len(ix))
 for i in range(len(ix)):
     y_pred[i] = classes[ix[i]]
 
-
+# accuracy(y_true, y_pred)
 
 
 
