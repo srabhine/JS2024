@@ -2,7 +2,7 @@
 
 @author: Raffaele M Ghigliazza
 """
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Any
 
 import pandas as pd
 import polars as pl
@@ -34,9 +34,10 @@ def get_symbols_dataset(sym: int = 1):
     return data_sym
 
 
-def get_features_classification():
-    feat_types = pd.read_csv(DATA_DIR / 'features_types.csv',
-                             index_col=0)
+def get_features_classification(file_path: Optional[Any] = None):
+    if file_path is None:
+        file_path = DATA_DIR / 'features_types.csv'
+    feat_types = pd.read_csv(file_path, index_col=0)
     feat_types_dic_tmp = feat_types.to_dict()['Type']
     feat_types_dic = {f'feature_{k:02d}': v for k, v in
                       feat_types_dic_tmp.items()}

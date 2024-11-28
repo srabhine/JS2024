@@ -44,16 +44,16 @@ def load_data(train_path,start_id,end_id):
 
     data = combined_lazy_df.collect().to_pandas()
 
-    data[feature_names] = data[feature_names].ffill().fillna(0)
+    data= data.ffill().fillna(0)
     return data
 
 
 
-# train_path = "/home/zt/pyProjects/JaneSt/Team/data/transformed_data"
-train_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data"
-# model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/2_base_model_trans_fet"
-model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
-model_saving_name = "model_2_Base_transFet_{epoch:02d}.keras"
+train_path = "/home/zt/pyProjects/JaneSt/Team/data/transformed_data"
+# train_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data"
+model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/3_base_model_mean_data"
+# model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
+model_saving_name = "model_3_Base_transFet_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 label_name = 'responder_6'
@@ -105,10 +105,13 @@ model.fit(
     y=y_train,                          # Target labels for training
     sample_weight=w_train,              # Sample weights for training
     validation_data=(X_valid, y_valid, w_valid),  # Validation data
-    batch_size=500,                      # Batch size
+    batch_size=8029,                      # Batch size
     epochs=100,                        # Number of epochs
     callbacks=ca,                # Callbacks list, if any
     verbose=1,                           # Verbose output during training
     shuffle=True
 )
+
+
+
 

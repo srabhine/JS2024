@@ -23,7 +23,8 @@ def get_all_data(start_date):
 
 def get_last_day_data(data):
     data = data.select(pl.col(feature_names))
-    data = data.group_by(["symbol_id", "date_id"], maintain_order=True).last()  # pick up last record of previous date
+    data = data.group_by(["symbol_id", "date_id"],
+                         maintain_order=True).last()  # pick up last record of previous date
     return data
 
 
