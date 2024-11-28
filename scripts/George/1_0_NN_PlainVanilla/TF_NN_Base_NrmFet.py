@@ -51,16 +51,16 @@ def load_data(train_path,start_id,end_id):
 
 train_path = "/home/zt/pyProjects/JaneSt/Team/data/transformed_data"
 # train_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\transformed_data"
-model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/3_base_model_mean_data"
+model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/4_base_trans_fet"
 # model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
-model_saving_name = "model_3_Base_transFet_{epoch:02d}.keras"
+model_saving_name = "model_4_Base_transFet_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
 
-data_train = load_data(train_path,start_id=4,end_id=7)
+data_train = load_data(train_path,start_id=2,end_id=7)
 data_valid = load_data(train_path,start_id=8,end_id=9)
 
 
