@@ -53,87 +53,57 @@ def load_data(path, start_dt, end_dt):
     return data
 
 
-# def get_features_classification(file_path: Optional[Any] = None):
-#     if file_path is None:
-#         raise ValueError
-#     feat_types = pd.read_csv(file_path, index_col=0)
-#     return feat_types.to_dict()['Type']
+
+
+
+# def normalize_data(data, merged_scaler_df):
+#     feature_names = [f"feature_{i:02d}" for i in range(79)]
+#     feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
+#     feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 #
-#
-# def get_norm_features_dict(file_path):
-#     feat_types_dic = get_features_classification(file_path)
-#     features_to_scale = [feature for feature, ftype in feat_types_dic.items() if ftype == 'normal']
-#     return features_to_scale
+#     merged_data = pd.merge(data, merged_scaler_df, on='symbol_id', how='left')
+#     means_array = merged_data[feature_names_mean].values
+#     stds_array = merged_data[feature_names_std].values
+#     normalized_features = (merged_data[feature_names].values - means_array) / stds_array
+#     return normalized_features
 
 
+def normalize_data(data, merged_scaler_df):
+    # Define feature names
+    feature_names = [f"feature_{i:02d}" for i in range(79)]
+    feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
+    feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 
-# Function to scale data using loaded scalers
+    # Set 'symbol_id' as the index for quick lookup
+    data.set_index('symbol_id', inplace=True)
+    merged_scaler_df.set_index('symbol_id', inplace=True)
 
+    # List to collect normalized features
+    normalized_features_list = []
 
+    # Iterate over the unique symbol_ids (assuming they range from 0 to 38 inclusive)
+    for symbol_id in data.index.unique():
+        # Check if the symbol_id exists in the merged_scaler_df
+        if symbol_id in merged_scaler_df.index:
+            # Retrieve all feature data for the current symbol_id
+            feature_values = data.loc[symbol_id, feature_names].values
 
-def reconstruct_scalers(scalers_df: pd.DataFrame, all_features: List[str]) -> pd.DataFrame:
+            # Retrieve mean and std values for this symbol_id
+            means = merged_scaler_df.loc[symbol_id, feature_names_mean].values
+            stds = merged_scaler_df.loc[symbol_id, feature_names_std].values
 
-    # Create a complete scaler DataFrame with defaults
-    complete_scalers_df = pd.DataFrame(index=all_features, columns=['mean', 'std'])
+            # Normalize the feature values using broadcasting
+            normalized_features = (feature_values - means) / stds
 
-    # Fill in existing scalers
-    for feature in scalers_df.index:
-        complete_scalers_df.loc[feature, 'mean'] = scalers_df.at[feature, 'mean']
-        complete_scalers_df.loc[feature, 'std'] = scalers_df.at[feature, 'std']
+            # Append the normalized features to the list
+            normalized_features_list.append(normalized_features)
 
-    # Fill missing scalers with default values
-    complete_scalers_df = complete_scalers_df.fillna({'mean': 0, 'std': 1})
-    scalers_mi = complete_scalers_df.stack().unstack(level=0)
+    # Stack all the normalized groups into a single numpy array
+    all_normalized_features = np.vstack(normalized_features_list)
 
-    return scalers_mi
-
-
-
-
-
-def apply_scalers_with_multiindex(valid_data: pd.DataFrame, scalers_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Scale the validation dataset using MultiIndex and vectorized operations.
-
-    Parameters:
-    - valid_data: pd.DataFrame, Validation data to be normalized.
-    - scalers_df: pd.DataFrame, Complete scalers DataFrame with mean and std.
-
-    Returns:
-    - Scaled validation DataFrame.
-    """
-    # Ensure valid_data columns are aligned with scalers
-    data_train_mi = data_train.reindex(columns=scalers_df.index)
-
-    # Scale data using broadcasting
-    scaled_data = (data_train_mi - scalers_df.loc['mean']) / scalers_df.loc['std']
-
-    return scaled_data
+    return all_normalized_features
 
 
-def transform_data_with_scalers(data: pd.DataFrame, scalers_df: pd.DataFrame) -> pd.DataFrame:
-    def reconstruct_scalers_for_data(data: pd.DataFrame, scalers_df: pd.DataFrame) -> pd.DataFrame:
-        # Create missing features set to determine if any features are not in scalers_df
-        missing_features = set(data.columns) - set(scalers_df.index)
-
-        # Create a new DataFrame for the complete scalers with defaults for missing features
-        complete_scalers_df = scalers_df.copy()
-
-        # Add missing features with default mean=0 and std=1
-        for feature in missing_features:
-            complete_scalers_df.loc[feature] = {'mean': 0, 'std': 1}
-
-        # Ensure correct order aligned with data columns
-        complete_scalers_df = complete_scalers_df.reindex(data.columns)
-
-        return complete_scalers_df
-    # First, ensure scalers_df is reconstructed to include all data features
-    scalers_df = reconstruct_scalers_for_data(data, scalers_df)
-
-    # Perform scaling using vectorized broadcasting
-    scaled_data = (data - scalers_df['mean']) / scalers_df['std']
-
-    return scaled_data
 
 
 
@@ -141,14 +111,16 @@ def transform_data_with_scalers(data: pd.DataFrame, scalers_df: pd.DataFrame) ->
 is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_whole.pkl"
+    merged_scaler_df_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
     model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/5_base_norm"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
 else:
     path = f"E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
-    scaler_filename = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\all_scalers.pkl'
+    merged_scaler_df_path = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\merged_scalers_df.pkl'
+    scaler_std_df_path = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\scaler_std_df.pkl'
     feature_dict_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
+    model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\1_0_NN_PlainVanilla\model_save\model_6_perSymbol_scale"
 
 
 features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','feature_33','feature_36','feature_39','feature_40',
@@ -157,10 +129,11 @@ features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','featu
                      'feature_78']
 
 
-# model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
-model_saving_name = "model_6_weightsSel_{epoch:02d}.keras"
+model_saving_name = "model_5_norm_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
+feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
+feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
@@ -168,20 +141,30 @@ weight_name = 'weight'
 data_train = load_data(path, start_dt=600, end_dt=1500)
 data_valid = load_data(path, start_dt=1501, end_dt=1690)
 
-data_train = data_train[data_train['weight']>=1.35]
-data_valid = data_valid[data_valid['weight']>=1.35]
+
+
+with open(merged_scaler_df_path, 'rb') as f:
+    merged_scaler_df = pickle.load(f)
+    
 
 
 
-X_train = data_train[feature_names]
-y_train = data_train[label_name]
-w_train = data_train["weight"]
+# X_train = data_train[feature_names]
+X_train = load_data(path, start_dt=1200, end_dt=1500)
+# X_train = data_train[feature_names]
+y_train = X_train[label_name]
+w_train = X_train["weight"]
+X_train = normalize_data(X_train, merged_scaler_df)
 del data_train
 
-X_valid = data_valid[feature_names]
-y_valid = data_valid[label_name]
-w_valid = data_valid["weight"]
+X_valid = load_data(path, start_dt=1501, end_dt=1690)
+# X_valid = data_valid[feature_names]
+y_valid = X_valid[label_name]
+w_valid = X_valid["weight"]
+X_valid = normalize_data(X_valid, merged_scaler_df)
 del data_valid
+
+
 
 
 lr = 0.01
@@ -190,14 +173,14 @@ input_dimensions = X_train.shape[1]
 model = create_model(input_dimensions, lr, weight_decay)
 
 ca = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=30, mode='max'),
+    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=25, mode='max'),
     tf.keras.callbacks.ModelCheckpoint(
         filepath=f'{model_saving_path}/{model_saving_name}',
         monitor='val_loss', save_best_only=False),
     tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',  # Metric to be monitored
         factor=0.1,  # Factor by which the learning rate will be reduced
-        patience=5,  # Number of epochs with no improvement after which learning rate will be reduced
+        patience=10,  # Number of epochs with no improvement after which learning rate will be reduced
         verbose=1,  # Verbosity mode
         min_lr=1e-6  # Lower bound on the learning rate
     )

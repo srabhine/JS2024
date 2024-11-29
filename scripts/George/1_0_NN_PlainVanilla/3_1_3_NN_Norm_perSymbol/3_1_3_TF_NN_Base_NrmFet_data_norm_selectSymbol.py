@@ -183,7 +183,8 @@ ca = [
         min_lr=1e-6  # Lower bound on the learning rate
     )
 ]
-symbol_id = 38
+
+symbol_id = 38 # <<<<<<<<<<<<<< Select symbol to train
 
 model.fit(
     x=train_dict[symbol_id]['features'],  # Input features for training
