@@ -48,90 +48,78 @@ def load_data(path, start_dt, end_dt):
 
     data = data.collect().to_pandas()
 
-    data.replace([np.inf, -np.inf], np.nan, inplace=True)
+    data.replace([np.inf, -np.inf], 0, inplace=True)
     data = data.fillna(0)
     return data
 
 
-def get_features_classification(file_path: Optional[Any] = None):
-    if file_path is None:
-        raise ValueError
-    feat_types = pd.read_csv(file_path, index_col=0)
-    return feat_types.to_dict()['Type']
-
-
-def get_norm_features_dict(file_path):
-    feat_types_dic = get_features_classification(file_path)
-    features_to_scale = [feature for feature, ftype in feat_types_dic.items() if ftype == 'normal']
-    return features_to_scale
 
 
 
-# Function to scale data using loaded scalers
-def scale_data_in_place(data, scalers, features_to_scale):
-    for symbol_id, group_indices in data.groupby('symbol_id').groups.items():
-        if symbol_id in scalers:
-            # Retrieve the scaler for this particular symbol_id
-            scaler = scalers[symbol_id]
-
-            # Transform the group's "normal" features in place
-            data.loc[group_indices, features_to_scale] = scaler.transform(data.loc[group_indices, features_to_scale])
-
-        else:
-            # Handle cases where a scaler is missing for a particular symbol_id
-            print(f"Warning: No scaler found for symbol_id {symbol_id}. Skipping scaling for this group.")
-
-    return data
+def normalize_data(data, merged_scaler_df):
+    feature_names = [f"feature_{i:02d}" for i in range(79)]
+    feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
+    feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
+    
+    merged_data = pd.merge(data, merged_scaler_df, on='symbol_id', how='left')
+    means_array = merged_data[feature_names_mean].values
+    stds_array = merged_data[feature_names_std].values
+    normalized_features = (merged_data[feature_names].values - means_array) / stds_array
+    return normalized_features
 
 
-
-is_linux = True
+is_linux = False
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/all_scalers.pkl"
+    scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
     model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/5_base_norm"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
 else:
     path = f"E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
-    scaler_filename = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\all_scalers.pkl'
+    merged_scaler_df_path = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\merged_scalers_df.pkl'
+    scaler_std_df_path = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\scaler_std_df.pkl'
     feature_dict_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
+    model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\1_0_NN_PlainVanilla\model_save\model_6_perSymbol_scale"
 
 
+features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','feature_33','feature_36','feature_39','feature_40',
+                     'feature_41','feature_42','feature_43', 'feature_44','feature_45','feature_46','feature_50','feature_51',
+                     'feature_52','feature_53','feature_54','feature_55','feature_56','feature_57','feature_63','feature_64',
+                     'feature_78']
 
 
-
-# model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
 model_saving_name = "model_5_norm_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
+feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
+feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
-features_to_scale = get_norm_features_dict(feature_dict_path)
-data_train = load_data(path, start_dt=500, end_dt=1500)
-data_valid = load_data(path, start_dt=1501, end_dt=1690)
-
-# Load all scalers from the file
-
-
-with open(scaler_filename, 'rb') as f:
-    loaded_scalers = pickle.load(f)
-
-# Apply scaling to both data_train and data_valid in-place
-data_train = scale_data_in_place(data_train, loaded_scalers, features_to_scale)
-data_valid = scale_data_in_place(data_valid, loaded_scalers, features_to_scale)
+# features_to_scale = get_norm_features_dict(feature_dict_path)
+data_train = load_data(path, start_dt=1450, end_dt=1500)
+data_valid = load_data(path, start_dt=1650, end_dt=1690)
 
 
 
-X_train = data_train[feature_names]
+with open(merged_scaler_df_path, 'rb') as f:
+    merged_scaler_df = pickle.load(f)
+    
+
+
+
+# X_train = data_train[feature_names]
+
 y_train = data_train[label_name]
 w_train = data_train["weight"]
+X_train = normalize_data(data_train, merged_scaler_df)
 del data_train
 
-X_valid = data_valid[feature_names]
+# X_valid = data_valid[feature_names]
 y_valid = data_valid[label_name]
 w_valid = data_valid["weight"]
+X_valid = normalize_data(data_valid, merged_scaler_df)
 del data_valid
 
 
