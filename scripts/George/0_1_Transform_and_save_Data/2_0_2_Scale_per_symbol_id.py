@@ -23,9 +23,9 @@ TARGET = 'responder_6'
 def load_data():
     path_win = f"E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
     path_linux = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    start_dt = 1350
+    start_dt = 600
     end_dt = 1400
-    data = pl.scan_parquet(path_win
+    data = pl.scan_parquet(path_linux
                            ).select(
         pl.int_range(pl.len(), dtype=pl.UInt32).alias("id"),
         pl.all(),
@@ -131,11 +131,6 @@ def calculate_and_fill_std_with_average(scaler_std_df, features_to_scale):
 		scaler_std_df.loc[symbol_id, features_to_scale] = pooled_std_series[features_to_scale]
 	
 	return scaler_std_df
-	
-
-	
-	
-	return pooled_std_series
 
 scaler_mean_df = calculate_and_fill_mean_with_average(scaler_mean_df, features_to_scale)
 scaler_std_df = calculate_and_fill_std_with_average(scaler_std_df, features_to_scale)
@@ -144,7 +139,8 @@ merged_scalers_df = pd.merge(scaler_mean_df, scaler_std_df, on='symbol_id', how 
 
 
 
-pickle_file = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\merged_scalers_df.pkl"
+# pickle_file = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\merged_scalers_df.pkl"
+pickle_file = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
 with open(pickle_file, 'wb') as f:
     pickle.dump(merged_scalers_df, f)
     

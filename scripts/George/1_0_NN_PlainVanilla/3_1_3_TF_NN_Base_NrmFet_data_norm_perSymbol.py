@@ -56,22 +56,65 @@ def load_data(path, start_dt, end_dt):
 
 
 
+# def normalize_data(data, merged_scaler_df):
+#     feature_names = [f"feature_{i:02d}" for i in range(79)]
+#     feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
+#     feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
+#
+#     merged_data = pd.merge(data, merged_scaler_df, on='symbol_id', how='left')
+#     means_array = merged_data[feature_names_mean].values
+#     stds_array = merged_data[feature_names_std].values
+#     normalized_features = (merged_data[feature_names].values - means_array) / stds_array
+#     return normalized_features
+
+
 def normalize_data(data, merged_scaler_df):
+    # Define feature names
     feature_names = [f"feature_{i:02d}" for i in range(79)]
     feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
     feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
-    
-    merged_data = pd.merge(data, merged_scaler_df, on='symbol_id', how='left')
-    means_array = merged_data[feature_names_mean].values
-    stds_array = merged_data[feature_names_std].values
-    normalized_features = (merged_data[feature_names].values - means_array) / stds_array
-    return normalized_features
+
+    # Set 'symbol_id' as the index for quick lookup
+    data.set_index('symbol_id', inplace=True)
+    # merged_scaler_df.set_index('symbol_id', inplace=True)
+
+    # Dictionary to hold features, weights, and targets for each symbol_id
+    data_dict = {}
+
+    # Iterate over the unique symbol_ids
+    for symbol_id in range(0,39):
+        # Select feature data for the current symbol_id
+        feature_values = data.loc[symbol_id, feature_names].values
+
+        # Select mean and std values for the current symbol_id
+        means = merged_scaler_df.loc[symbol_id, feature_names_mean].values
+        stds = merged_scaler_df.loc[symbol_id, feature_names_std].values
+
+        # Normalize features using broadcasting
+        normalized_features = (feature_values - means) / stds
+
+        # Extract weights and target values
+        weights = data.loc[symbol_id, 'weight'].values
+        target = data.loc[symbol_id, 'responder_6'].values
+
+        # Store in dictionary
+        data_dict[symbol_id] = {
+            'features': normalized_features,
+            'weights': weights,
+            'target': target
+        }
+
+    return data_dict
 
 
-is_linux = False
+
+
+
+
+is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
+    merged_scaler_df_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
     model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/5_base_norm"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
@@ -98,8 +141,8 @@ label_name = 'responder_6'
 weight_name = 'weight'
 
 # features_to_scale = get_norm_features_dict(feature_dict_path)
-data_train = load_data(path, start_dt=1450, end_dt=1500)
-data_valid = load_data(path, start_dt=1650, end_dt=1690)
+data_train = load_data(path, start_dt=600, end_dt=1500)
+data_valid = load_data(path, start_dt=1501, end_dt=1690)
 
 
 
@@ -111,25 +154,24 @@ with open(merged_scaler_df_path, 'rb') as f:
 
 # X_train = data_train[feature_names]
 
-y_train = data_train[label_name]
-w_train = data_train["weight"]
-X_train = normalize_data(data_train, merged_scaler_df)
+
+train_dict = normalize_data(data_train, merged_scaler_df)
 del data_train
 
 # X_valid = data_valid[feature_names]
-y_valid = data_valid[label_name]
-w_valid = data_valid["weight"]
-X_valid = normalize_data(data_valid, merged_scaler_df)
+valid_dict = normalize_data(data_valid, merged_scaler_df)
 del data_valid
+
+
 
 
 lr = 0.01
 weight_decay = 1e-6
-input_dimensions = X_train.shape[1]
+input_dimensions = train_dict[0]['features'].shape[1]
 model = create_model(input_dimensions, lr, weight_decay)
 
 ca = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=25, mode='max'),
+    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=30, mode='max'),
     tf.keras.callbacks.ModelCheckpoint(
         filepath=f'{model_saving_path}/{model_saving_name}',
         monitor='val_loss', save_best_only=False),
@@ -140,19 +182,19 @@ ca = [
         verbose=1,  # Verbosity mode
         min_lr=1e-6  # Lower bound on the learning rate
     )
-
 ]
+symbol_id = 38
 
 model.fit(
-    x=X_train,  # Input features for training
-    y=y_train,  # Target labels for training
-    sample_weight=w_train,  # Sample weights for training
-    validation_data=(X_valid, y_valid, w_valid),  # Validation data
+    x=train_dict[symbol_id]['features'],  # Input features for training
+    y=train_dict[symbol_id]['target'],  # Target labels for training
+    sample_weight=train_dict[symbol_id]['weights'],  # Sample weights for training
+    validation_data=(valid_dict[symbol_id]['features'], valid_dict[symbol_id]['target'], valid_dict[symbol_id]['weights']),  # Validation data
     batch_size=8029,  # Batch size
     epochs=100,  # Number of epochs
     callbacks=ca,  # Callbacks list, if any
     verbose=1,  # Verbose output during training
-    shuffle=True
+    shuffle=False
 )
 
 
