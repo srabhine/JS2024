@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.impute import SimpleImputer
 import polars as pl
-from typing import Optional, List, Union, Dict, Any
+from typing import Optional, List, Union, Dict, Any, Tuple
 import os
 import pickle
 import numpy as np
@@ -29,7 +29,7 @@ TARGET = 'responder_6'
 def load_data():
     path_win = f"E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
     path_linux = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    start_dt = 500
+    start_dt = 600
     end_dt = 1400
     data = pl.scan_parquet(path_linux
                            ).select(
@@ -42,79 +42,77 @@ def load_data():
 
     data = data.collect().to_pandas()
 
-    data.replace([np.inf, -np.inf], np.nan, inplace=True)
+    data.replace([np.inf, -np.inf], 0, inplace=True)
     data = data.fillna(0)
     return data
 
 
-def get_norm_features_dict():
-    # file_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
-    file_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
-    feat_types_dic = get_features_classification(file_path)
-    features_to_scale = [feature for feature, ftype in feat_types_dic.items() if ftype == 'normal']
-    return features_to_scale
+# def get_norm_features_dict():
+#     # file_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
+#     file_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
+#     feat_types_dic = get_features_classification(file_path)
+#     features_to_scale = [feature for feature, ftype in feat_types_dic.items() if ftype == 'normal']
+#     return features_to_scale
 
 
-def save_scalers(features_to_scale):
-    # scaler_dir = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save"
-    scaler_dir = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers"
-    os.makedirs(scaler_dir, exist_ok=True)
-    # Dictionary to hold all scalers
-    scalers = {}
+# def save_scalers(features_to_scale):
+#     # scaler_dir = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save"
+#     scaler_dir = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers"
+#     os.makedirs(scaler_dir, exist_ok=True)
+#     # Dictionary to hold all scalers
+#     scalers = {}
+#
+#     # Group by 'symbol_id' and apply scaling
+#     for symbol_id, group in data.groupby('symbol_id'):
+#         # Initialize MinMaxScaler for this group
+#         scaler = StandardScaler()
+#
+#         # Fit the scaler on the group's "normal" features
+#         scaler.fit(group[features_to_scale])
+#
+#         # Store the scaler in the dictionary with symbol_id as the key
+#         scalers[symbol_id] = scaler
+#
+#     # Save all scalers to a single file
+#     scaler_filename = f'{scaler_dir}/all_scalers.pkl'
+#
+#     with open(scaler_filename, 'wb') as f:
+#         pickle.dump(scalers, f)
 
-    # Group by 'symbol_id' and apply scaling
-    for symbol_id, group in data.groupby('symbol_id'):
-        # Initialize MinMaxScaler for this group
-        scaler = StandardScaler()
+# data = load_data()
+# features_to_scale = get_norm_features_dict()
+# save_scalers(features_to_scale)
 
-        # Fit the scaler on the group's "normal" features
-        scaler.fit(group[features_to_scale])
 
-        # Store the scaler in the dictionary with symbol_id as the key
-        scalers[symbol_id] = scaler
 
-    # Save all scalers to a single file
-    scaler_filename = f'{scaler_dir}/all_scalers.pkl'
+features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','feature_33','feature_36','feature_39','feature_40',
+                     'feature_41','feature_42','feature_43', 'feature_44','feature_45','feature_46','feature_50','feature_51',
+                     'feature_52','feature_53','feature_54','feature_55','feature_56','feature_57','feature_63','feature_64',
+                     'feature_78']
 
-    with open(scaler_filename, 'wb') as f:
-        pickle.dump(scalers, f)
+
+def normalize_and_save_scalers(data: pd.DataFrame, features_to_scale: List[str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    # Calculate mean and std for each feature to be scaled
+    means = data[features_to_scale].mean()
+    stds = data[features_to_scale].std()
+
+    # Scale the specified features directly in the original DataFrame
+    data[features_to_scale] = (data[features_to_scale] - means) / stds
+
+    # Create a DataFrame for scalers
+    scalers_df = pd.DataFrame({'mean': means, 'std': stds})
+
+    # Return the modified DataFrame and the scalers DataFrame
+    return data, scalers_df
 
 data = load_data()
-features_to_scale = get_norm_features_dict()
-save_scalers(features_to_scale)
+data = data.fillna(0)
+data, scalers_df = normalize_and_save_scalers(data, features_to_scale)
+# pickle_file = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
+# with open(pickle_file, 'wb') as f:
+#     pickle.dump(scalers_df, f)
 
-"""
-with open(scaler_filename, 'rb') as f:
-    scaler = pickle.load(f)
 
-df_validation[features_to_scale] = scaler.transform(df_validation[features_to_scale])
-"""
 
-"""
-features_to_scale =
-['feature_01',
- 'feature_04',
- 'feature_18',
- 'feature_19',
- 'feature_33',
- 'feature_36',
- 'feature_39',
- 'feature_40',
- 'feature_41',
- 'feature_42',
- 'feature_43',
- 'feature_44',
- 'feature_45',
- 'feature_46',
- 'feature_50',
- 'feature_51',
- 'feature_52',
- 'feature_53',
- 'feature_54',
- 'feature_55',
- 'feature_56',
- 'feature_57',
- 'feature_63',
- 'feature_64',
- 'feature_78']
-"""
+
+
