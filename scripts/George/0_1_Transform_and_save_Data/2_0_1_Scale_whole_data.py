@@ -8,12 +8,6 @@ import pickle
 import numpy as np
 
 
-def get_features_classification(file_path: Optional[Any] = None):
-    if file_path is None:
-        raise ValueError
-    feat_types = pd.read_csv(file_path, index_col=0)
-    return feat_types.to_dict()['Type']
-
 
 SYMBOLS = list(range(39))
 RESPONDERS = list(range(9))
@@ -46,42 +40,6 @@ def load_data():
     data = data.fillna(0)
     return data
 
-
-# def get_norm_features_dict():
-#     # file_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
-#     file_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
-#     feat_types_dic = get_features_classification(file_path)
-#     features_to_scale = [feature for feature, ftype in feat_types_dic.items() if ftype == 'normal']
-#     return features_to_scale
-
-
-# def save_scalers(features_to_scale):
-#     # scaler_dir = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save"
-#     scaler_dir = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers"
-#     os.makedirs(scaler_dir, exist_ok=True)
-#     # Dictionary to hold all scalers
-#     scalers = {}
-#
-#     # Group by 'symbol_id' and apply scaling
-#     for symbol_id, group in data.groupby('symbol_id'):
-#         # Initialize MinMaxScaler for this group
-#         scaler = StandardScaler()
-#
-#         # Fit the scaler on the group's "normal" features
-#         scaler.fit(group[features_to_scale])
-#
-#         # Store the scaler in the dictionary with symbol_id as the key
-#         scalers[symbol_id] = scaler
-#
-#     # Save all scalers to a single file
-#     scaler_filename = f'{scaler_dir}/all_scalers.pkl'
-#
-#     with open(scaler_filename, 'wb') as f:
-#         pickle.dump(scalers, f)
-
-# data = load_data()
-# features_to_scale = get_norm_features_dict()
-# save_scalers(features_to_scale)
 
 
 
