@@ -9,6 +9,8 @@ from tensorflow.keras import layers, models, optimizers, regularizers, callbacks
 from tensorflow.keras.layers import Input, Dense, Concatenate
 from tensorflow.keras.models import Model
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from libs.io_lib.paths import LAGS_FEATURES_TRAIN, \
+    LAGS_FEATURES_VALID, MODELS_DIR
 
 
 def create_model(input_dim, lr, weight_decay):
@@ -33,6 +35,8 @@ def create_model(input_dim, lr, weight_decay):
                   metrics=['accuracy'])
     return model
 
+
+'''
 def load_data(train_path,start_id,end_id):
     # df = pl.scan_parquet(f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/FOLD3").collect().to_pandas()
     folder_paths = [
@@ -46,6 +50,19 @@ def load_data(train_path,start_id,end_id):
 
     data= data.ffill().fillna(0)
     return data
+'''
+
+def load_data(start_id, end_id):
+   folder_paths = [
+       f"{LAGS_FEATURES_TRAIN}/date_id={date_id}/00000000.parquet"
+       for date_id in range(start_id, end_id + 1)
+   ]
+   
+   lazy_frames = [pl.scan_parquet(path) for path in folder_paths]
+   combined_data = pl.concat(lazy_frames).collect().to_pandas()
+   
+   return combined_data.ffill().fillna(0)
+
 
 def decode_predictions(y_pred, encoder, classes):
     """
@@ -58,6 +75,7 @@ def decode_predictions(y_pred, encoder, classes):
     return y_pred_decoded
 
 
+'''
 def evaluate_model(model, X_valid, y_valid_original, encoder, classes):
     """
     Evaluate the model and print various metrics
@@ -76,6 +94,23 @@ def evaluate_model(model, X_valid, y_valid_original, encoder, classes):
     print(classification_report(y_valid_original, y_pred_decoded))
     
     return y_pred_decoded
+'''
+
+def evaluate_model(model, X_valid, y_valid_original, encoder, classes):
+    """
+    Instead of using model predictions, always predict -1 and evaluate accuracy
+    """
+    # Create array of -1s with same length as validation set
+    y_pred_decoded = np.full(len(y_valid_original), -1)
+    
+    # Print evaluation metrics
+    print("\nFixed Prediction (-1) Evaluation:")
+    print("--------------------------------")
+    print("Accuracy Score:", accuracy_score(y_valid_original, y_pred_decoded))
+    print("\nDetailed Classification Report:")
+    print(classification_report(y_valid_original, y_pred_decoded))
+    
+    return y_pred_decoded
 
 
 
@@ -85,15 +120,35 @@ model_saving_path = "C:/Users/srabh/OneDrive/Documents/Jane_Street_Data_Challeng
 # model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
 model_saving_name = "nn_sign_{epoch:02d}.keras"
 
-feature_names = [f"feature_{i:02d}" for i in range(79)]
+feature_names = [f"feature_{i:02d}" for i in range(79)] + [f"feature_{i:02d}_lag_1" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
-data_train = load_data(train_path,start_id=6,end_id=7)
-data_valid = load_data(train_path,start_id=8,end_id=9)
+#data_train = load_data(train_path,start_id=6,end_id=7)
+#data_valid = load_data(train_path,start_id=8,end_id=9)
 
-data_train = data_train[data_train['symbol_id']==1]
-data_valid = data_valid[data_valid['symbol_id']==1]
+data_train = load_data(start_id=1544, end_id=1644) 
+data_valid = load_data(start_id=1645, end_id=1646)
+
+
+data_valid = load_data(start_id=1645, end_id=1646)
+
+# Prepare validation labels
+y_valid = np.sign(data_valid['responder_6'])
+
+# Generate fixed predictions of -1
+y_pred = np.full(len(y_valid), -1)
+
+# Calculate and print metrics
+print("\nFixed Prediction (-1) Evaluation:")
+print("--------------------------------")
+print("Accuracy Score:", accuracy_score(y_valid, y_pred))
+print("\nDetailed Classification Report:")
+print(classification_report(y_valid, y_pred))
+
+
+#data_train = data_train[data_train['symbol_id']==1]
+#data_valid = data_valid[data_valid['symbol_id']==1]
 
 
 encoder = OneHotEncoder(handle_unknown='error')
@@ -106,8 +161,6 @@ y_train = data_train[ label_name    ]
 y_train= np.sign(y_train)
 y_train_original = y_train.copy() 
 Y_train = encoder.transform(y_train.values.reshape(-1,1)).toarray()
-
-
 w_train = data_train[ "weight"      ]
 del data_train
 
@@ -118,8 +171,6 @@ y_valid_original = y_valid.copy()
 Y_valid = encoder.transform(y_valid.values.reshape(-1,1)).toarray()
 w_valid = data_valid[ "weight"      ]
 del data_valid
-
-y_s = np.sign(y_train)
 
 
 
