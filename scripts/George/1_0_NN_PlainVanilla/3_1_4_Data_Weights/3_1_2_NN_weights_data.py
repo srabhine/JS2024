@@ -141,7 +141,7 @@ def transform_data_with_scalers(data: pd.DataFrame, scalers_df: pd.DataFrame) ->
 is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
+    scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_whole.pkl"
     model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/5_base_norm"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
@@ -158,7 +158,7 @@ features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','featu
 
 
 # model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
-model_saving_name = "model_5_norm_{epoch:02d}.keras"
+model_saving_name = "model_6_weightsSel_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 label_name = 'responder_6'
@@ -168,17 +168,8 @@ weight_name = 'weight'
 data_train = load_data(path, start_dt=600, end_dt=1500)
 data_valid = load_data(path, start_dt=1501, end_dt=1690)
 
-
-
-with open(scaler_filename, 'rb') as f:
-    scalers_df = pickle.load(f)
-# data = apply_scalers_with_multiindex(data_train, scalers_df)
-
-
-
-# Apply scaling to both data_train and data_valid in-place
-data_train = transform_data_with_scalers(data_train, scalers_df)
-data_valid = transform_data_with_scalers(data_valid, scalers_df)
+data_train = data_train[data_train['weight']>=1.35]
+data_valid = data_valid[data_valid['weight']>=1.35]
 
 
 
@@ -199,14 +190,14 @@ input_dimensions = X_train.shape[1]
 model = create_model(input_dimensions, lr, weight_decay)
 
 ca = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=25, mode='max'),
+    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=30, mode='max'),
     tf.keras.callbacks.ModelCheckpoint(
         filepath=f'{model_saving_path}/{model_saving_name}',
         monitor='val_loss', save_best_only=False),
     tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',  # Metric to be monitored
         factor=0.1,  # Factor by which the learning rate will be reduced
-        patience=10,  # Number of epochs with no improvement after which learning rate will be reduced
+        patience=5,  # Number of epochs with no improvement after which learning rate will be reduced
         verbose=1,  # Verbosity mode
         min_lr=1e-6  # Lower bound on the learning rate
     )

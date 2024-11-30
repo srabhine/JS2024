@@ -66,9 +66,9 @@ def normalize_and_save_scalers(data: pd.DataFrame, features_to_scale: List[str])
 data = load_data()
 data = data.fillna(0)
 data, scalers_df = normalize_and_save_scalers(data, features_to_scale)
-# pickle_file = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
-# with open(pickle_file, 'wb') as f:
-#     pickle.dump(scalers_df, f)
+pickle_file = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_whole.pkl"
+with open(pickle_file, 'wb') as f:
+    pickle.dump(scalers_df, f)
 
 
 
