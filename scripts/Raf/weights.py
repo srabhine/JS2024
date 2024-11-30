@@ -8,6 +8,7 @@ import polars as pl
 from matplotlib import pyplot as plt
 
 from io_lib.paths import LAGS_FEATURES_TRAIN, LAGS_FEATURES_VALID
+from math_lib.core import r2_zero
 from one_big_lib import stack_features_by_sym
 from plot_lib.core import PARAMS_HELPER
 
@@ -45,12 +46,9 @@ len(weights[weights>1.35]) / len(weights)
 weights_ = df['weight']
 y_true_ = df['responder_6']
 
-def r2_zero(y_true, y_pred, weights):
-    num = (weights * (y_true - y_pred)**2).sum()
-    den = (weights * y_true**2).sum()
-    return 1 - num / den
-
 y_pred_ = 0 * np.ones_like(y_true_)
+
+
 r2w = r2_zero(y_true_, y_pred_, weights_)
 print(r2w)
 
