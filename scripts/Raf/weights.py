@@ -41,3 +41,25 @@ axs[2].axvline(1.35, **PARAMS_HELPER)
 plt.show()
 
 len(weights[weights>1.35]) / len(weights)
+
+weights_ = df['weight']
+y_true_ = df['responder_6']
+
+def r2_zero(y_true, y_pred, weights):
+    num = (weights * (y_true - y_pred)**2).sum()
+    den = (weights * y_true**2).sum()
+    return 1 - num / den
+
+y_pred_ = 0 * np.ones_like(y_true_)
+r2w = r2_zero(y_true_, y_pred_, weights_)
+print(r2w)
+
+y_pred_ = y_true_.mean()
+r2w = r2_zero(y_true_, y_pred_, weights_)
+print(r2w)
+
+
+
+
+
+
