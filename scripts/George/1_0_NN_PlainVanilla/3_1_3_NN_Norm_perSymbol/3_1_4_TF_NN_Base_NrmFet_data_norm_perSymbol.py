@@ -252,11 +252,11 @@ def calculate_r2(y_true, y_pred, weights):
         )
 
     # Calculate weighted mean of y_true
-    weighted_mean_true = np.sum(weights * y_true) / np.sum(weights)
+    # weighted_mean_true = np.sum(weights * y_true) / np.sum(weights)
 
     # Calculate the numerator and denominator for R²
     numerator = np.sum(weights * (y_true - y_pred) ** 2)
-    denominator = np.sum(weights * (y_true - weighted_mean_true) ** 2)
+    denominator = np.sum(weights * (y_true) ** 2)
 
     # Prevent division by zero
     if denominator == 0:
