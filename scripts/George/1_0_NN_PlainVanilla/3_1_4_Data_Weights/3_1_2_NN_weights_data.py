@@ -142,7 +142,7 @@ is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
     scaler_filename = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_whole.pkl"
-    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/5_base_norm"
+    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/6_weights_selected"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
 else:
@@ -158,18 +158,18 @@ features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','featu
 
 
 # model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\models\\2_base_model_trans_fet"
-model_saving_name = "model_6_weightsSel_{epoch:02d}.keras"
+model_saving_name = "model_6_weightsSel_2_25_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
 # features_to_scale = get_norm_features_dict(feature_dict_path)
-data_train = load_data(path, start_dt=600, end_dt=1500)
+data_train = load_data(path, start_dt=500, end_dt=1500)
 data_valid = load_data(path, start_dt=1501, end_dt=1690)
 
-data_train = data_train[data_train['weight']>=1.35]
-data_valid = data_valid[data_valid['weight']>=1.35]
+data_train = data_train[data_train['weight']>=2.25]
+data_valid = data_valid[data_valid['weight']>=2.25]
 
 
 
@@ -190,7 +190,7 @@ input_dimensions = X_train.shape[1]
 model = create_model(input_dimensions, lr, weight_decay)
 
 ca = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=30, mode='max'),
+    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=55, mode='max'),
     tf.keras.callbacks.ModelCheckpoint(
         filepath=f'{model_saving_path}/{model_saving_name}',
         monitor='val_loss', save_best_only=False),
@@ -229,11 +229,11 @@ def calculate_r2(y_true, y_pred, weights):
         )
 
     # Calculate weighted mean of y_true
-    weighted_mean_true = np.sum(weights * y_true) / np.sum(weights)
+    # weighted_mean_true = np.sum(weights * y_true) / np.sum(weights)
 
     # Calculate the numerator and denominator for R²
     numerator = np.sum(weights * (y_true - y_pred) ** 2)
-    denominator = np.sum(weights * (y_true - weighted_mean_true) ** 2)
+    denominator = np.sum(weights * y_true ** 2)
 
     # Prevent division by zero
     if denominator == 0:

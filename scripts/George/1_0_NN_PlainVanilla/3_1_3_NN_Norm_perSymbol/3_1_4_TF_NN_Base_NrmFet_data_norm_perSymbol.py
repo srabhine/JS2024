@@ -55,17 +55,60 @@ def load_data(path, start_dt, end_dt):
 
 
 
+#
+#     return all_normalized_features
 
 # def normalize_data(data, merged_scaler_df):
+#     # Define feature names
 #     feature_names = [f"feature_{i:02d}" for i in range(79)]
 #     feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
 #     feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 #
-#     merged_data = pd.merge(data, merged_scaler_df, on='symbol_id', how='left')
-#     means_array = merged_data[feature_names_mean].values
-#     stds_array = merged_data[feature_names_std].values
-#     normalized_features = (merged_data[feature_names].values - means_array) / stds_array
-#     return normalized_features
+#     # Set 'symbol_id' as the index for quick lookup
+#     data.set_index('symbol_id', inplace=True)
+#
+#     # List to collect normalized features along with other columns
+#     normalized_data_list = []
+#
+#     # Iterate over the unique symbol_ids
+#     for symbol_id in data.index.unique():
+#         # Check if the symbol_id exists in the merged_scaler_df
+#         if symbol_id in merged_scaler_df.index:
+#             # Retrieve all feature data and additional columns for the current symbol_id
+#             subset = data.loc[symbol_id]
+#
+#             # Retrieve mean and std values for this symbol_id
+#             means = merged_scaler_df.loc[symbol_id, feature_names_mean].values
+#             stds = merged_scaler_df.loc[symbol_id, feature_names_std].values
+#
+#             # Normalize the feature values using broadcasting
+#             subset_features = subset[feature_names].values
+#             normalized_features = (subset_features - means) / stds
+#
+#             # Combine normalized features with the rest of the data
+#             normalized_df = pd.DataFrame(normalized_features, columns=feature_names, index=subset.index)
+#
+#             # Adding non-normalized columns back to the normalized dataframe
+#             additional_columns = subset[['time_id', 'date_id', 'weight']]
+#             result = pd.concat([additional_columns, normalized_df], axis=1)
+#
+#             # Add the symbol_id as a regular column
+#             result['symbol_id'] = symbol_id
+#
+#             # Append the result to the list
+#             normalized_data_list.append(result)
+#
+#     # Concatenate all dataframes to create a unified DataFrame
+#     final_normalized_data = pd.concat(normalized_data_list)
+#
+#     # Reset index to have a clean DataFrame
+#     final_normalized_data.reset_index(drop=True, inplace=True)
+#
+#     # Reorder columns as specified: symbol_id, date_id, time_id, weight, feature names
+#     column_order = ['symbol_id', 'date_id', 'time_id'] + feature_names
+#     final_normalized_data = final_normalized_data[column_order]
+#
+#     return final_normalized_data
 
 
 def normalize_data(data, merged_scaler_df):
@@ -74,37 +117,36 @@ def normalize_data(data, merged_scaler_df):
     feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
     feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 
-    # Set 'symbol_id' as the index for quick lookup
-    data.set_index('symbol_id', inplace=True)
-    merged_scaler_df.set_index('symbol_id', inplace=True)
+    # Copy the data to avoid changes to the original dataset
+    # normalized_data = data.copy()
 
-    # List to collect normalized features
-    normalized_features_list = []
+    # Iterate over unique symbol_ids
+    for symbol_id in data['symbol_id'].unique():
+        # Find indices for this symbol_id
+        symbol_indices = data[data['symbol_id'] == symbol_id].index
 
-    # Iterate over the unique symbol_ids (assuming they range from 0 to 38 inclusive)
-    for symbol_id in data.index.unique():
-        # Check if the symbol_id exists in the merged_scaler_df
+        # If symbol_id exists in merged_scaler_df, perform normalization
         if symbol_id in merged_scaler_df.index:
-            # Retrieve all feature data for the current symbol_id
-            feature_values = data.loc[symbol_id, feature_names].values
-
-            # Retrieve mean and std values for this symbol_id
+            # Retrieve mean and std values
             means = merged_scaler_df.loc[symbol_id, feature_names_mean].values
             stds = merged_scaler_df.loc[symbol_id, feature_names_std].values
 
-            # Normalize the feature values using broadcasting
-            normalized_features = (feature_values - means) / stds
+            # Normalize the features for this batch of data
+            original_values = data.loc[symbol_indices, feature_names].values
+            normalized_values = (original_values - means) / stds
 
-            # Append the normalized features to the list
-            normalized_features_list.append(normalized_features)
+            # Cast normalized values to the same dtype as original columns
+            target_dtype = data[feature_names].dtypes.iloc[0]
+            normalized_values = normalized_values.astype(target_dtype)
 
-    # Stack all the normalized groups into a single numpy array
-    all_normalized_features = np.vstack(normalized_features_list)
+            # Update normalized values in a copy of the DataFrame
+            data.loc[symbol_indices, feature_names] = normalized_values
 
-    return all_normalized_features
+    # Reorder columns: symbol_id, date_id, time_id, weight, feature_names
+    # column_order = ['symbol_id', 'date_id'] + feature_names
+    # data = data[column_order]
 
-
-
+    return data
 
 
 
@@ -129,7 +171,7 @@ features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','featu
                      'feature_78']
 
 
-model_saving_name = "model_5_norm_{epoch:02d}.keras"
+model_saving_name = "model_7_normALL_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
@@ -137,11 +179,7 @@ feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
-# features_to_scale = get_norm_features_dict(feature_dict_path)
-data_train = load_data(path, start_dt=600, end_dt=1500)
-data_valid = load_data(path, start_dt=1501, end_dt=1690)
-
-
+col_to_train = ['symbol_id', 'time_id'] + feature_names
 
 with open(merged_scaler_df_path, 'rb') as f:
     merged_scaler_df = pickle.load(f)
@@ -155,14 +193,16 @@ X_train = load_data(path, start_dt=1200, end_dt=1500)
 y_train = X_train[label_name]
 w_train = X_train["weight"]
 X_train = normalize_data(X_train, merged_scaler_df)
-del data_train
+X_train = X_train[col_to_train]
+# del data_train
 
 X_valid = load_data(path, start_dt=1501, end_dt=1690)
 # X_valid = data_valid[feature_names]
 y_valid = X_valid[label_name]
 w_valid = X_valid["weight"]
 X_valid = normalize_data(X_valid, merged_scaler_df)
-del data_valid
+X_valid = X_valid[col_to_train]
+# del data_valid
 
 
 
