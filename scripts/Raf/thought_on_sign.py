@@ -4,6 +4,7 @@
 """
 import numpy as np
 import polars as pl
+from matplotlib import pyplot as plt
 
 from io_lib.paths import LAGS_FEATURES_TRAIN, LAGS_FEATURES_VALID
 from one_big_lib import stack_features_by_sym
@@ -20,7 +21,6 @@ df_by_sym['responder_6']
 diffs = np.sign(df_by_sym['responder_6']).diff().dropna()
 vals = diffs.values.ravel()
 len(vals[vals==0]) / len(vals)
-
 
 signs = np.sign(df_by_sym['responder_6'])
 s_rnd = np.sign(np.random.randn(len(signs))).mean()
