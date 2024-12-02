@@ -5,6 +5,9 @@
 # https://www.kaggle.com/competitions/jane-street-real-time-market-data-forecasting/discussion/543567
 
 
+# Common document:
+# https://docs.google.com/document/d/1MtZdE_4svyVpK9VJIezs3qMnrCtulPvDFqzWG3lQO0A/edit?tab=t.0
+
 # Paths
 import os
 from pathlib import Path

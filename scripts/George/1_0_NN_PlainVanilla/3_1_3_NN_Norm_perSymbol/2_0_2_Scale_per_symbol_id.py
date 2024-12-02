@@ -25,7 +25,7 @@ def load_data():
     path_linux = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
     start_dt = 600
     end_dt = 1400
-    data = pl.scan_parquet(path_win
+    data = pl.scan_parquet(path_linux
                            ).select(
         pl.int_range(pl.len(), dtype=pl.UInt32).alias("id"),
         pl.all(),
@@ -139,7 +139,8 @@ merged_scalers_df = pd.merge(scaler_mean_df, scaler_std_df, on='symbol_id', how 
 
 
 
-pickle_file = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\merged_scalers_df.pkl"
+# pickle_file = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\\merged_scalers_df.pkl"
+pickle_file = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
 with open(pickle_file, 'wb') as f:
     pickle.dump(merged_scalers_df, f)
     
