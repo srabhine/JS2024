@@ -33,6 +33,16 @@ def load_data(path, start_dt, end_dt):
     data = data.fillna(0)
     return data
 
+
+def ScoreMetric(ytrue, ypred, weight):
+    """
+    This function is a modification of the ready-made R-square function with sample weight.
+    We have this as a column in the dataset
+    """
+
+    return r2_score(ytrue, ypred, sample_weight=weight)
+
+
 class CustomMetricMaker:
     "This class makes the custom metric for LGBM and XGBoost early stopping"
 
@@ -77,12 +87,12 @@ col_to_train = feature_names
 
 
 # X_train = data_train[feature_names]
-X_train = load_data(path, start_dt=1450, end_dt=1500)
+X_train = load_data(path, start_dt=1200, end_dt=1500)
 y_train = X_train[label_name]
 w_train = X_train["weight"]
 X_train = X_train[col_to_train]
 
-X_valid = load_data(path, start_dt=1650, end_dt=1690)
+X_valid = load_data(path, start_dt=1501, end_dt=1690)
 y_valid = X_valid[label_name]
 w_valid = X_valid["weight"]
 X_valid = X_valid[col_to_train]
@@ -108,12 +118,12 @@ model = LGBMRegressor(
     reg_lambda=0.8,
     reg_alpha=0.1,
     num_leaves=800,
-    verbosity=1
+    verbosity=-1
 )
 
 mymetric = CustomMetricMaker(method="LGB")
 model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)],
-    eval_names=["Test"], eval_metric=[mymetric.make_metric], sample_weight=w_train,
+    eval_names=["valid"], eval_metric=[mymetric.make_metric], sample_weight=w_train,
     callbacks=[log_evaluation(100),early_stopping(100, verbose=True)])
 
 
