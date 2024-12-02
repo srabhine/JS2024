@@ -7,6 +7,7 @@ import polars as pl
 
 from io_lib.paths import LAGS_FEATURES_TRAIN, LAGS_FEATURES_VALID
 from one_big_lib import stack_features_by_sym
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 # Load data
 df = pl.scan_parquet(LAGS_FEATURES_TRAIN).collect().to_pandas()
@@ -29,7 +30,6 @@ sum(abs(signs.mean()) > s_rnd)
 y = df['responder_6']
 y_s = np.sign(y)
 
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 encoder = OneHotEncoder(handle_unknown='error')
 classes = [-1, 0, 1]

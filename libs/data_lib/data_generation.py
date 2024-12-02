@@ -33,6 +33,7 @@ class CONFIG:
 
     valid_ratio = 0.05
     start_dt = 1650
+    # start_dt = 1200  # memory fails
 
 
 # Load training data

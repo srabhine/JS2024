@@ -59,6 +59,7 @@ for sym in SYMBOLS:
     freqs.append(peak_frequency)
     periods.append(1/peak_frequency)
     keys.append(sym)
+    # r2_zero(y, y_hat, weights)
 
 
 predictions = pd.concat(predictions, keys=keys)
