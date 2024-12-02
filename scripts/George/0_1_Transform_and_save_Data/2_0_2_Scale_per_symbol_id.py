@@ -23,7 +23,7 @@ TARGET = 'responder_6'
 def load_data():
     path_win = f"E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
     path_linux = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    start_dt = 1350
+    start_dt = 600
     end_dt = 1400
     data = pl.scan_parquet(path_win
                            ).select(
@@ -131,11 +131,6 @@ def calculate_and_fill_std_with_average(scaler_std_df, features_to_scale):
 		scaler_std_df.loc[symbol_id, features_to_scale] = pooled_std_series[features_to_scale]
 	
 	return scaler_std_df
-	
-
-	
-	
-	return pooled_std_series
 
 scaler_mean_df = calculate_and_fill_mean_with_average(scaler_mean_df, features_to_scale)
 scaler_std_df = calculate_and_fill_std_with_average(scaler_std_df, features_to_scale)
