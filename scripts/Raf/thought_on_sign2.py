@@ -77,3 +77,49 @@ for sym in SYMBOLS:
     print(f'{acc.loc[sym]*100:1.2f}%, {r2.loc[sym]:1.4f}')
 
 
+# For submission
+def predict(test: pl.DataFrame,
+            lags: pl.DataFrame | None) -> pl.DataFrame:
+    global old_feature_sign, old_pred_sign
+
+    now_test = test.to_pandas().fillna(0).replace(
+        {-np.inf: -1, np.inf: 1})
+    features_names = ["symbol_id", "feature_01"]
+    symbols = now_test['symbol_id']
+
+    # # Apply the lambda function to compute predictions
+    # merged_df = pd.merge(now_test[features_names], before_test[features_names], on = "symbol_id", how="left", suffixes=('_now','_before'))
+
+    if now_test['time_id'].iloc[0] == 0:
+        old_pred_sign = pd.Series(1, index=symbols)
+        # Change the above to the sign of the last time_id of the previous day
+        old_feature_sign = np.sign(now_test['feature_01'])
+        pred = 0.078343086 * old_pred_sign
+
+    else:
+        new_feature_sign = np.sign(now_test['feature_01'])
+        pred = pd.Series(0, index=now_test['symbol_id'])
+        for s in now_test['symbol_id']:
+            if s in old_feature_sign:
+                if new_feature_sign.loc[s] == old_feature_sign.loc[s]:
+                    pred.loc[s] = 0.078343086 * old_pred_sign.loc[s]
+                else:
+                    pred.loc[s] = - 0.078343086 * old_pred_sign.loc[s]
+        old_pred_sign = np.sign(pred)
+        old_feature_sign = new_feature_sign
+
+    # old_pred = merged_df.apply(sign_compute_lambda, axis=1).fillna(0).values
+
+    predictions = test.select('row_id').with_columns(
+        pl.Series(
+            name='responder_6',
+            values=pred,
+            dtype=pl.Float64
+        )
+    )
+
+    # save the current test a before test, so we can keep it for next round
+    before_test = now_test.copy()
+    assert len(predictions) == len(test)
+
+    return predictions
