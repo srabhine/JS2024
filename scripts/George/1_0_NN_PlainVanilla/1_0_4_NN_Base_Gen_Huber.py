@@ -23,6 +23,48 @@ def set_random_seeds(seed=42):
 set_random_seeds(42)
 
 
+def get_generator_v3(dataframe, weights, feature_names, label_name, shuffle=True, batch_size=8192):
+    def generator():
+        indices = np.arange(len(dataframe))
+        if shuffle:
+            np.random.shuffle(indices)
+
+        num_batches = len(indices) // batch_size + (1 if len(indices) % batch_size > 0 else 0)
+
+        for i in range(num_batches):
+            start_index = i * batch_size
+            end_index = min((i + 1) * batch_size, len(dataframe))
+            current_indices = indices[start_index:end_index]
+
+            features = dataframe.iloc[current_indices][feature_names].values
+            labels = dataframe.iloc[current_indices][label_name].values
+            if weights is not None:
+                weights_batch = weights.iloc[current_indices].values
+            else:
+                weights_batch = np.ones(len(labels), dtype=np.float32)
+
+            yield features, labels.reshape(-1, 1), weights_batch
+
+    return generator
+
+
+def prepare_dataset(dataframe, weights, feature_names, label_name, batch_size=8192, shuffle=True):
+    num_features = len(feature_names)
+
+    output_signature = (
+        tf.TensorSpec(shape=(None, num_features), dtype=tf.float32),
+        tf.TensorSpec(shape=(None, 1), dtype=tf.float32),
+        tf.TensorSpec(shape=(None,), dtype=tf.float32)
+    )
+
+    dataset = tf.data.Dataset.from_generator(
+        get_generator_v3(dataframe, weights, feature_names, label_name, shuffle, batch_size),
+        output_signature=output_signature
+    )
+
+    return dataset
+
+
 def create_model(input_dim, lr, weight_decay):
     # Create a sequential model
     model = models.Sequential()
@@ -42,7 +84,7 @@ def create_model(input_dim, lr, weight_decay):
     # Compile model with Mean Squared Error loss
     # model.compile(optimizer=optimizers.Adam(learning_rate=lr), loss='mse', metrics=[WeightedR2()])
     model.compile(optimizer=optimizers.Adam(learning_rate=lr),
-                  loss='mse',
+                  loss=tf.keras.losses.Huber(),
                   metrics=[tf.keras.metrics.R2Score(class_aggregation='uniform_average')])
     return model
 
@@ -69,7 +111,7 @@ is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
     merged_scaler_df_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
-    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/7_base_huberLoss"
+    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/1_base_model"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
 else:
@@ -91,58 +133,52 @@ weight_name = 'weight'
 
 # =================Needs Edit=======================================
 # col_to_train = ['symbol_id', 'date_id', 'time_id'] + feature_names
-model_saving_name = "model_0_base_{epoch:02d}.keras"
+model_saving_name = "0_1_Base_Gen_Huber_{epoch:02d}.keras"
 col_to_train = feature_names
 
-with open(merged_scaler_df_path, 'rb') as f:
-    merged_scaler_df = pickle.load(f)
 
-# X_train = data_train[feature_names]
-X_train = load_data(path, start_dt=1200, end_dt=1500)
-# X_train = data_train[feature_names]
-y_train = X_train[label_name]
-w_train = X_train["weight"]
-X_train = X_train[col_to_train]
-# del data_train
+data_train = load_data(path, start_dt=1200, end_dt=1500)
+w_train = data_train[ "weight" ]
+data_train = prepare_dataset(data_train, w_train, col_to_train, label_name, batch_size=8129)
 
-X_valid = load_data(path, start_dt=1501, end_dt=1690)
-# X_valid = data_valid[feature_names]
-y_valid = X_valid[label_name]
-w_valid = X_valid["weight"]
-X_valid = X_valid[col_to_train]
-# del data_valid
+data_valid = load_data(path, start_dt=1501, end_dt=1690)
+w_valid = data_valid[ "weight" ]
+data_valid = prepare_dataset(data_valid, w_valid, col_to_train, label_name, batch_size=8129)
+
+
+
+
+
 
 
 lr = 0.01
 weight_decay = 1e-6
-input_dimensions = X_train.shape[1]
+input_dimensions = len(col_to_train)
 model = create_model(input_dimensions, lr, weight_decay)
 
 ca = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=50, mode='max'),
+    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=30, mode='max'),
     tf.keras.callbacks.ModelCheckpoint(
         filepath=f'{model_saving_path}/{model_saving_name}',
         monitor='val_loss', save_best_only=False),
     tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',  # Metric to be monitored
         factor=0.1,  # Factor by which the learning rate will be reduced
-        patience=10,  # Number of epochs with no improvement after which learning rate will be reduced
+        patience=8,  # Number of epochs with no improvement after which learning rate will be reduced
         verbose=1,  # Verbosity mode
         min_lr=1e-6  # Lower bound on the learning rate
     )
 
 ]
 
+
+
 model.fit(
-    x=X_train,  # Input features for training
-    y=y_train,  # Target labels for training
-    sample_weight=w_train,  # Sample weights for training
-    validation_data=(X_valid, y_valid, w_valid),  # Validation data
-    batch_size=8029,  # Batch size
-    epochs=100,  # Number of epochs
-    callbacks=ca,  # Callbacks list, if any
+    data_train.map(lambda x, y, w: (x, y, {'sample_weight': w})),
+    epochs=100,
+    validation_data=data_valid.map(lambda x, y, w: (x, y, {'sample_weight': w})),
+    callbacks=ca,
     verbose=1,  # Verbose output during training
-    shuffle=True
 )
 
 
@@ -172,7 +208,9 @@ def calculate_r2(y_true, y_pred, weights):
 
     return r2_score
 
-
+data_valid = load_data(path, start_dt=1501, end_dt=1690)
+X_valid = data_valid[ col_to_train ]
+y_valid = data_valid[ label_name ]
 y_pred = model.predict(X_valid)
 pred_r2_score = calculate_r2(y_valid, y_pred, w_valid)
 print("R2 score: {:.8f}".format(pred_r2_score))

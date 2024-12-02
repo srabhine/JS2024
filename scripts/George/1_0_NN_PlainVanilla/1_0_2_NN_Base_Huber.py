@@ -42,7 +42,7 @@ def create_model(input_dim, lr, weight_decay):
     # Compile model with Mean Squared Error loss
     # model.compile(optimizer=optimizers.Adam(learning_rate=lr), loss='mse', metrics=[WeightedR2()])
     model.compile(optimizer=optimizers.Adam(learning_rate=lr),
-                  loss='mse',
+                  loss=tf.keras.losses.Huber(),
                   metrics=[tf.keras.metrics.R2Score(class_aggregation='uniform_average')])
     return model
 
@@ -80,6 +80,7 @@ else:
     model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\1_0_NN_PlainVanilla\model_save\model_6_perSymbol_scale"
 
 
+model_saving_name = "model_7_huberloss_{epoch:02d}.keras"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
@@ -87,11 +88,7 @@ feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
-
-
-# =================Needs Edit=======================================
 # col_to_train = ['symbol_id', 'date_id', 'time_id'] + feature_names
-model_saving_name = "model_0_base_{epoch:02d}.keras"
 col_to_train = feature_names
 
 with open(merged_scaler_df_path, 'rb') as f:
