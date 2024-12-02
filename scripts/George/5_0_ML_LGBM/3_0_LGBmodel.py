@@ -13,6 +13,7 @@ random_state      = 50
 
 
 data_path = "/home/zt/pyProjects/Optiver/JaneStreetMktPred/Training_Responders/data"
+
 important_features = ['date_id', 'time_id', 'symbol_id',
                       'feature_06', 'feature_07', 'feature_60', 'feature_36',
                        'feature_59', 'feature_08', 'feature_04', 'feature_05',
