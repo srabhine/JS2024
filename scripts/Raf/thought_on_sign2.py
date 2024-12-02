@@ -69,7 +69,8 @@ for sym in SYMBOLS:
             y_pred_sign.iloc[i] = y_sign.iloc[i-1]
         else:
             y_pred_sign.iloc[i] = -y_sign.iloc[i-1]
-        y_pred.iloc[i] = 0.1 * sg_y * y_pred_sign.iloc[i]
+        # y_pred.iloc[i] = 0.1 * sg_y * y_pred_sign.iloc[i]
+        y_pred.iloc[i] = 0.05 * sg_y * y_pred_sign.iloc[i]
 
     acc.loc[sym] = accuracy_score(y_sign, y_pred_sign.fillna(0))
     r2[sym] = r2_zero(y, y_pred, weights)
