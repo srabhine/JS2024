@@ -40,15 +40,9 @@ def load_data(path, start_dt, end_dt):
     return data
 
 
-# Categorical Features
-categorical_features = ['feature_09','feature_10','feature_11']
+feature_names = [f"feature_{i:02d}" for i in range(79)]
+data = load_data(original_data_path, start_dt=1200, end_dt=1500)
 
-data = load_data(original_data_path, start_dt=1450, end_dt=1500)
-features = ['feature_12', 'feature_13', 'feature_14', 'feature_16', 'feature_17',
-           'feature_67', 'feature_68', 'feature_69', 'feature_70', 'feature_71',
-           'feature_72', 'feature_73', 'feature_74', 'feature_75', 'feature_76',
-           'feature_77']
-def transf_moving_avg(data, days=10, features=['feature_12']):
-    for name, sym_df in data.groupby('symbol_id'):
-        data.loc[sym_df.index, features] = sym_df[features].rolling(window=days, min_periods=1).mean().astype('float32')
-    
+corr_with_responder6 =  data[feature_names].corrwith(data['responder_6'])
+high_correlation_features = corr_with_responder6[abs(corr_with_responder6) >= 0.05].index
+high_cor_columns = corr_with_responder6.sort_values(ascending=False)[:10].index
