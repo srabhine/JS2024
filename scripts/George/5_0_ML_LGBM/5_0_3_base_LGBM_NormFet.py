@@ -104,7 +104,7 @@ def transfrom_data(data):
                     'feature_77']
     categorical_features = ['feature_09','feature_10','feature_11']
     log_features = categorical_features + log_features
-    data[log_features] = np.log1p(data[log_features])
+    data[log_features] = data[log_features].applymap(lambda x: np.log1p(abs(x)) if x != 0 else np.log1p(1e-6))
     data['time_id'] = np.cos(data['time_id'])
     one_hot_encoded = pd.get_dummies(data['symbol_id'], prefix='symbol')
     data = pd.concat([data, one_hot_encoded], axis=1)
@@ -113,7 +113,7 @@ def transfrom_data(data):
 
 
 
-is_linux = False
+is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
     merged_scaler_df_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
@@ -207,13 +207,12 @@ valid_score = r2_score(y_valid, y_pred_valid, sample_weight=w_valid)
 print(f"Validation R² Score: {valid_score}")
 
 
-with open("E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\5_0_ML_LGBM\models\\5_0_1_base\\5_0_3_ML_base_lgbm_NormFeat.pkl", 'wb') as model_file:
+with open("/home/zt/pyProjects/JaneSt/Team/scripts/George/5_0_ML_LGBM/models/5_0_3_ML_base_lgbm_NormFeat2.pkl", 'wb') as model_file:
     pickle.dump(model, model_file)
 
 """
 Early stopping, best iteration is:
 [515]	valid's l2: 0.627131	valid's Wgt_RSquare: 0.00877473
 Validation R² Score: 0.008927443281406378
-
-
 """
+
