@@ -97,20 +97,15 @@ col_to_train = feature_names
 with open(merged_scaler_df_path, 'rb') as f:
     merged_scaler_df = pickle.load(f)
 
-# X_train = data_train[feature_names]
 X_train = load_data(path, start_dt=1200, end_dt=1500)
-# X_train = data_train[feature_names]
 y_train = X_train[label_name]
 w_train = X_train["weight"]
 X_train = X_train[col_to_train]
-# del data_train
 
 X_valid = load_data(path, start_dt=1501, end_dt=1690)
-# X_valid = data_valid[feature_names]
 y_valid = X_valid[label_name]
 w_valid = X_valid["weight"]
 X_valid = X_valid[col_to_train]
-# del data_valid
 
 
 lr = 0.01
