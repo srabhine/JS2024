@@ -28,11 +28,11 @@ def create_model(input_dim, lr, weight_decay):
     model = models.Sequential()
 
     model.add(layers.Input(shape=(input_dim,)))
-    model.add(layers.BatchNormalization())
+    # model.add(layers.BatchNormalization())
     model.add(layers.Activation('swish'))
     model.add(layers.Dropout(0.1))  # Assuming dropouts[1] is valid
     model.add(layers.Dense(128, kernel_regularizer=regularizers.l2(weight_decay)))
-    model.add(layers.BatchNormalization())
+    # model.add(layers.BatchNormalization())
     model.add(layers.Activation('swish'))
     model.add(layers.Dropout(0.1))  # Assuming dropouts[1] is valid
     model.add(layers.Dense(64, kernel_regularizer=regularizers.l2(weight_decay)))
