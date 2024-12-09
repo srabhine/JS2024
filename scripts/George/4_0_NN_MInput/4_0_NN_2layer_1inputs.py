@@ -216,7 +216,10 @@ def calculate_r2(y_true, y_pred, weights):
     return r2_score
 
 
-y_pred = model.predict(X_valid)
+y_pred = model.predict(X_valid[:30])
 
-pred_r2_score = calculate_r2(y_valid, np.array(y_pred[0]).flatten(), w_valid)
+pred_r2_score = calculate_r2(y_valid[:30], np.array(y_pred[0]).flatten(), w_valid[:30])
 print("R2 score: {:.8f}".format(pred_r2_score))
+
+
+model = tf.keras.models.load_model("/home/zt/pyProjects/JaneSt/Team/scripts/George/4_0_NN_MInput/models/NN_Minputs_diff_04.keras")
