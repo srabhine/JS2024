@@ -61,6 +61,23 @@ class CustomMetricMaker:
             return ScoreMetric(ytrue, ypred, weight)
 
 
+def transf_moving_avg(data, days=10, features=['feature_12']):
+    for name, sym_df in data.groupby('symbol_id'):
+        data.loc[sym_df.index, features] = sym_df[features].rolling(window=days, min_periods=1).mean().astype('float32')
+        
+    return data
+
+def transfrom_data(data):
+    data['time_id'] = np.cos(data['time_id'])
+    one_hot_encoded = pd.get_dummies(data['symbol_id'], prefix='symbol')
+    data = pd.concat([data, one_hot_encoded], axis=1)
+    data = data.drop('symbol_id', axis=1)
+    return data
+
+
+
+
+
 is_linux = False
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
@@ -74,6 +91,7 @@ else:
     scaler_std_df_path = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\scaler_std_df.pkl'
     feature_dict_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
     model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\1_0_NN_PlainVanilla\model_save\model_6_perSymbol_scale"
+    
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
@@ -82,20 +100,35 @@ label_name = 'responder_6'
 weight_name = 'weight'
 
 model_saving_name = "model_0_base_{epoch:02d}.keras"
-col_to_train = feature_names
+col_to_train = ['feature_16', 'feature_17', 'feature_15', 'feature_60', 'feature_51',
+       'feature_58', 'feature_68', 'feature_34', 'feature_59', 'feature_13']
 
 
 
-# X_train = data_train[feature_names]
+
 X_train = load_data(path, start_dt=1200, end_dt=1500)
+X_train = X_train.fillna(0)
 y_train = X_train[label_name]
 w_train = X_train["weight"]
 X_train = X_train[col_to_train]
 
+
+
 X_valid = load_data(path, start_dt=1501, end_dt=1690)
+X_valid = X_valid.fillna(0)
 y_valid = X_valid[label_name]
 w_valid = X_valid["weight"]
 X_valid = X_valid[col_to_train]
+
+
+X_train = X_train.fillna(0)
+w_train = w_train.fillna(0)
+X_train = X_train.replace([np.inf, -np.inf], 0)
+
+
+X_valid = X_valid.fillna(0)
+w_valid = w_valid.fillna(0)
+X_valid = X_valid.replace([np.inf, -np.inf], 0)
 
 
 # Define custom R² calculation
@@ -135,6 +168,13 @@ valid_score = r2_score(y_valid, y_pred_valid, sample_weight=w_valid)
 print(f"Validation R² Score: {valid_score}")
 
 
-with open("E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\5_0_ML_LGBM\models\\5_0_1_base\\5_0_1_ML_base_lgbm.pkl", 'wb') as model_file:
+with open("E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\5_0_ML_LGBM\models\\5_0_1_base\\5_0_4_ML_lgbm_SMA.pkl", 'wb') as model_file:
     pickle.dump(model, model_file)
 
+"""
+Early stopping, best iteration is:
+[515]	valid's l2: 0.627131	valid's Wgt_RSquare: 0.00877473
+Validation R² Score: 0.008927443281406378
+
+
+"""

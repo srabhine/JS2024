@@ -1,40 +1,21 @@
-import os
-import polars as pl
-import tensorflow as tf
-import numpy as np
 import pandas as pd
-import pickle
-from sklearn.model_selection import train_test_split
+import polars as pl
+import numpy as np
+import joblib
+import os
 from sklearn.metrics import r2_score
-from typing import Optional, List, Union, Dict, Any
-from tensorflow.keras import layers, models, optimizers, regularizers, callbacks
-from tensorflow.keras.layers import Input, Dense, Concatenate
-from tensorflow.keras.models import Model
+import random
+import pickle
+from lightgbm import LGBMRegressor
+from lightgbm import LGBMRegressor, log_evaluation, early_stopping
+def set_random_seeds(seed=42):
+    # Set the random seed for reproducibility
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
 
-
-def create_model(input_dim, lr, weight_decay):
-    # Create a sequential model
-    model = models.Sequential()
-
-    model.add(layers.Input(shape=(input_dim,)))
-    model.add(layers.BatchNormalization())
-    model.add(layers.Activation('swish'))
-    model.add(layers.Dropout(0.1))  # Assuming dropouts[1] is valid
-    model.add(layers.Dense(128, kernel_regularizer=regularizers.l2(weight_decay)))
-    model.add(layers.BatchNormalization())
-    model.add(layers.Activation('swish'))
-    model.add(layers.Dropout(0.1))  # Assuming dropouts[1] is valid
-    model.add(layers.Dense(64, kernel_regularizer=regularizers.l2(weight_decay)))
-    # Output layer
-    model.add(layers.Dense(1, activation='tanh'))
-
-    # Compile model with Mean Squared Error loss
-    # model.compile(optimizer=optimizers.Adam(learning_rate=lr), loss='mse', metrics=[WeightedR2()])
-    model.compile(optimizer=optimizers.Adam(learning_rate=lr),
-                  loss='mse',
-                  metrics=[tf.keras.metrics.R2Score(class_aggregation='uniform_average')])
-    return model
-
+# Before creating and training your model, call the function
+set_random_seeds(42)
 
 def load_data(path, start_dt, end_dt):
     data = pl.scan_parquet(path
@@ -53,6 +34,31 @@ def load_data(path, start_dt, end_dt):
     return data
 
 
+def ScoreMetric(ytrue, ypred, weight):
+    """
+    This function is a modification of the ready-made R-square function with sample weight.
+    We have this as a column in the dataset
+    """
+
+    return r2_score(ytrue, ypred, sample_weight=weight)
+
+
+class CustomMetricMaker:
+    "This class makes the custom metric for LGBM and XGBoost early stopping"
+
+    def __init__(self, method):
+        self.method = method
+
+    def make_metric(self, ytrue, ypred, weight):
+        """
+        This method returns the relevant metric for LGBM and XGB.
+        Catboost has a slightly different signature for the same- will be provided in version 2
+        """
+
+        if "LGB" in self.method:
+            return 'Wgt_RSquare', ScoreMetric(ytrue, ypred, weight), True
+        else:
+            return ScoreMetric(ytrue, ypred, weight)
 
 def normalize_data(data, merged_scaler_df):
     # Define feature names
@@ -98,7 +104,7 @@ def transfrom_data(data):
                     'feature_77']
     categorical_features = ['feature_09','feature_10','feature_11']
     log_features = categorical_features + log_features
-    data[log_features] = np.log1p(data[log_features])
+    data[log_features] = data[log_features].applymap(lambda x: np.log1p(abs(x)) if x != 0 else np.log1p(1e-6))
     data['time_id'] = np.cos(data['time_id'])
     one_hot_encoded = pd.get_dummies(data['symbol_id'], prefix='symbol')
     data = pd.concat([data, one_hot_encoded], axis=1)
@@ -106,11 +112,12 @@ def transfrom_data(data):
     return data
 
 
-is_linux = False
+
+is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
     merged_scaler_df_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
-    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/5_base_norm"
+    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/7_base_huberLoss"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
 else:
@@ -119,15 +126,7 @@ else:
     scaler_std_df_path = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\scaler_std_df.pkl'
     feature_dict_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
     model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\1_0_NN_PlainVanilla\model_save\model_6_perSymbol_scale"
-
-
-features_to_scale = ['feature_01', 'feature_04','feature_18','feature_19','feature_33','feature_36','feature_39','feature_40',
-                     'feature_41','feature_42','feature_43', 'feature_44','feature_45','feature_46','feature_50','feature_51',
-                     'feature_52','feature_53','feature_54','feature_55','feature_56','feature_57','feature_63','feature_64',
-                     'feature_78']
-
-
-model_saving_name = "model_7_normALL_{epoch:02d}.keras"
+    
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
@@ -135,96 +134,85 @@ feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
+model_saving_name = "model_0_base_{epoch:02d}.keras"
 col_to_train = [f"symbol_{sym}" for sym in range(0,39)] + ['time_id'] + feature_names
+
 
 with open(merged_scaler_df_path, 'rb') as f:
     merged_scaler_df = pickle.load(f)
-    
 
-
-
-# X_train = data_train[feature_names]
-X_train = load_data(path, start_dt=1450, end_dt=1500)
-# X_train = data_train[feature_names]
+X_train = load_data(path, start_dt=1200, end_dt=1500)
+X_train = X_train.fillna(0)
 y_train = X_train[label_name]
 w_train = X_train["weight"]
 X_train = normalize_data(X_train, merged_scaler_df)
 X_train = transfrom_data(X_train)
-
 X_train = X_train[col_to_train]
-# del data_train
+
+
 
 X_valid = load_data(path, start_dt=1501, end_dt=1690)
-# X_valid = data_valid[feature_names]
+X_valid = X_valid.fillna(0)
 y_valid = X_valid[label_name]
 w_valid = X_valid["weight"]
 X_valid = normalize_data(X_valid, merged_scaler_df)
-X_train = transfrom_data(X_train)
+X_valid = transfrom_data(X_valid)
 X_valid = X_valid[col_to_train]
-# del data_valid
 
 
+X_train = X_train.fillna(0)
+w_train = w_train.fillna(0)
+X_train = X_train.replace([np.inf, -np.inf], 0)
 
 
-lr = 0.01
-weight_decay = 1e-6
-input_dimensions = X_train.shape[1]
-model = create_model(input_dimensions, lr, weight_decay)
+X_valid = X_valid.fillna(0)
+w_valid = w_valid.fillna(0)
+X_valid = X_valid.replace([np.inf, -np.inf], 0)
 
-ca = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_r2_score', patience=25, mode='max'),
-    tf.keras.callbacks.ModelCheckpoint(
-        filepath=f'{model_saving_path}/{model_saving_name}',
-        monitor='val_loss', save_best_only=False),
-    tf.keras.callbacks.ReduceLROnPlateau(
-        monitor='val_loss',  # Metric to be monitored
-        factor=0.1,  # Factor by which the learning rate will be reduced
-        patience=10,  # Number of epochs with no improvement after which learning rate will be reduced
-        verbose=1,  # Verbosity mode
-        min_lr=1e-6  # Lower bound on the learning rate
-    )
 
-]
+# Define custom R² calculation
+def r2_val(y_true, y_pred, sample_weight):
+    """Calculate weighted R² value."""
+    numerator = np.average((y_pred - y_true) ** 2, weights=sample_weight)
+    denominator = np.average(y_true ** 2, weights=sample_weight) + 1e-38
+    r2 = 1 - numerator / denominator
+    return r2
 
-model.fit(
-    x=X_train,  # Input features for training
-    y=y_train,  # Target labels for training
-    sample_weight=w_train,  # Sample weights for training
-    validation_data=(X_valid, y_valid, w_valid),  # Validation data
-    batch_size=8029,  # Batch size
-    epochs=100,  # Number of epochs
-    callbacks=ca,  # Callbacks list, if any
-    verbose=1,  # Verbose output during training
-    shuffle=True
+model = LGBMRegressor(
+    device="gpu",
+    objective="regression_l2",
+    boosting_type = 'gbdt',
+    n_estimators=1500,
+    max_depth=11,
+    learning_rate=0.01,
+    colsample_bytree=0.6,
+    subsample=0.6,
+    random_state=42,
+    reg_lambda=0.8,
+    reg_alpha=0.1,
+    num_leaves=800,
+    verbosity=-1
 )
 
+mymetric = CustomMetricMaker(method="LGB")
+model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)],
+    eval_names=["valid"], eval_metric=[mymetric.make_metric], sample_weight=w_train,
+    callbacks=[log_evaluation(10),early_stopping(100, verbose=True)])
 
-def calculate_r2(y_true, y_pred, weights):
-    # Convert inputs to numpy arrays and check their shapes
-    y_true = np.asarray(y_true).flatten()
-    y_pred = np.asarray(y_pred).flatten()
-    weights = np.asarray(weights).flatten()
 
-    if not (y_true.shape == y_pred.shape == weights.shape):
-        raise ValueError(
-            f'Shape mismatch: y_true {y_true.shape}, y_pred {y_pred.shape}, weights {weights.shape}'
-        )
 
-    # Calculate weighted mean of y_true
-    # weighted_mean_true = np.sum(weights * y_true) / np.sum(weights)
 
-    # Calculate the numerator and denominator for R²
-    numerator = np.sum(weights * (y_true - y_pred) ** 2)
-    denominator = np.sum(weights * (y_true) ** 2)
+y_pred_valid = model.predict(X_valid)
+valid_score = r2_score(y_valid, y_pred_valid, sample_weight=w_valid)
+print(f"Validation R² Score: {valid_score}")
 
-    # Prevent division by zero
-    if denominator == 0:
-        return float('nan')
 
-    r2_score = 1 - (numerator / denominator)
+with open("/home/zt/pyProjects/JaneSt/Team/scripts/George/5_0_ML_LGBM/models/5_0_3_ML_base_lgbm_NormFeat2.pkl", 'wb') as model_file:
+    pickle.dump(model, model_file)
 
-    return r2_score
+"""
+Early stopping, best iteration is:
+[515]	valid's l2: 0.627131	valid's Wgt_RSquare: 0.00877473
+Validation R² Score: 0.008927443281406378
+"""
 
-y_pred = model.predict(X_valid)
-pred_r2_score = calculate_r2(y_valid, y_pred, w_valid)
-print("R2 score: {:.8f}".format(pred_r2_score))

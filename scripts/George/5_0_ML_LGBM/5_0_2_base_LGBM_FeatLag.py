@@ -61,11 +61,12 @@ class CustomMetricMaker:
             return ScoreMetric(ytrue, ypred, weight)
 
 
-is_linux = False
+is_linux = True
 if is_linux:
-    path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    merged_scaler_df_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
-    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/models/7_base_huberLoss"
+    original_data_path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
+    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/5_0_ML_LGBM/models"
+    train_data_path = "/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/FOLD2"
+    valid_data_path = "/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/validation.parquet"
     feature_dict_path = "/home/zt/pyProjects/JaneSt/Team/data/features_types.csv"
 
 else:
@@ -74,28 +75,31 @@ else:
     scaler_std_df_path = 'E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\0_1_Transform_and_save_Data\\temp_save\scaler_std_df.pkl'
     feature_dict_path = "E:\Python_Projects\JS2024\GITHUB_C\data\\features_types.csv"
     model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\1_0_NN_PlainVanilla\model_save\model_6_perSymbol_scale"
+    train_data_path = "/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/FOLD2"
+    valid_data_path = "/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/validation.parquet"
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 feature_names_mean = [f"feature_{i:02d}_mean" for i in range(79)]
 feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
-label_name = 'responder_6'
+lag_responders = [f"responder_{idx}_lag_1" for idx in range(9)]
+target_name = 'responder_6'
 weight_name = 'weight'
 
-model_saving_name = "model_0_base_{epoch:02d}.keras"
-col_to_train = feature_names
+model_saving_name = "5_0_2_ML_base_LGBM_ResLags.pkl"
+col_to_train = feature_names + lag_responders
 
 
 
-# X_train = data_train[feature_names]
-X_train = load_data(path, start_dt=1200, end_dt=1500)
-y_train = X_train[label_name]
-w_train = X_train["weight"]
-X_train = X_train[col_to_train]
+train = pl.scan_parquet(train_data_path).collect().to_pandas().fillna(0)
+valid = pl.scan_parquet(valid_data_path).collect().to_pandas().fillna(0)
 
-X_valid = load_data(path, start_dt=1501, end_dt=1690)
-y_valid = X_valid[label_name]
-w_valid = X_valid["weight"]
-X_valid = X_valid[col_to_train]
+
+X_train = train[ col_to_train ]
+y_train = train[ target_name ]
+w_train = train[ "weight" ]
+X_valid = valid[ col_to_train ]
+y_valid = valid[ target_name ]
+w_valid = valid[ "weight" ]
 
 
 # Define custom R² calculation
@@ -135,6 +139,6 @@ valid_score = r2_score(y_valid, y_pred_valid, sample_weight=w_valid)
 print(f"Validation R² Score: {valid_score}")
 
 
-with open("E:\Python_Projects\JS2024\GITHUB_C\scripts\George\\5_0_ML_LGBM\models\\5_0_1_base\\5_0_1_ML_base_lgbm.pkl", 'wb') as model_file:
+with open(f"{model_saving_path}/{model_saving_name}", 'wb') as model_file:
     pickle.dump(model, model_file)
 

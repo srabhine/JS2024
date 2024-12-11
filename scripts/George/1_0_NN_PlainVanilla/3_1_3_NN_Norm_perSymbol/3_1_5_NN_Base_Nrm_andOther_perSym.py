@@ -91,22 +91,9 @@ def normalize_data(data, merged_scaler_df):
 
     return data
 
-def transfrom_data(data):
-    log_features = ['feature_12', 'feature_13', 'feature_14', 'feature_16', 'feature_17',
-                    'feature_67', 'feature_68', 'feature_69', 'feature_70', 'feature_71',
-                    'feature_72', 'feature_73', 'feature_74', 'feature_75', 'feature_76',
-                    'feature_77']
-    categorical_features = ['feature_09','feature_10','feature_11']
-    log_features = categorical_features + log_features
-    data[log_features] = np.log1p(data[log_features])
-    data['time_id'] = np.cos(data['time_id'])
-    one_hot_encoded = pd.get_dummies(data['symbol_id'], prefix='symbol')
-    data = pd.concat([data, one_hot_encoded], axis=1)
-    data = data.drop('symbol_id', axis=1)
-    return data
 
 
-is_linux = False
+is_linux = True
 if is_linux:
     path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
     merged_scaler_df_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/0_1_Transform_and_save_Data/temp_scalers/scalers_df.pkl"
@@ -135,7 +122,7 @@ feature_names_std = [f"feature_{i:02d}_std" for i in range(79)]
 label_name = 'responder_6'
 weight_name = 'weight'
 
-col_to_train = [f"symbol_{sym}" for sym in range(0,39)] + ['time_id'] + feature_names
+col_to_train = ['symbol_id', 'time_id'] + feature_names
 
 with open(merged_scaler_df_path, 'rb') as f:
     merged_scaler_df = pickle.load(f)
@@ -144,13 +131,11 @@ with open(merged_scaler_df_path, 'rb') as f:
 
 
 # X_train = data_train[feature_names]
-X_train = load_data(path, start_dt=1450, end_dt=1500)
+X_train = load_data(path, start_dt=1200, end_dt=1500)
 # X_train = data_train[feature_names]
 y_train = X_train[label_name]
 w_train = X_train["weight"]
 X_train = normalize_data(X_train, merged_scaler_df)
-X_train = transfrom_data(X_train)
-
 X_train = X_train[col_to_train]
 # del data_train
 
@@ -159,7 +144,6 @@ X_valid = load_data(path, start_dt=1501, end_dt=1690)
 y_valid = X_valid[label_name]
 w_valid = X_valid["weight"]
 X_valid = normalize_data(X_valid, merged_scaler_df)
-X_train = transfrom_data(X_train)
 X_valid = X_valid[col_to_train]
 # del data_valid
 
