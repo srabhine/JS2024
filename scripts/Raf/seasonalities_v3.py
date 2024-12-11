@@ -7,27 +7,22 @@ import numpy as np
 import pandas as pd
 
 import polars as pl
-from IPython.core.pylabtools import figsize
-from scipy.signal import periodogram
-
-from statsmodels.tsa.deterministic import CalendarFourier, \
-    DeterministicProcess
 
 from data_lib.variables import TARGET, SYMBOLS
 from io_lib.paths import LAGS_FEATURES_TRAIN
 from math_lib.core import r2_zero
-from plot_lib.seasonalities import plot_periodogram
 
 # Load data
 df_all = pl.scan_parquet(LAGS_FEATURES_TRAIN).collect().to_pandas()
 
-predictions, freqs, periods, keys = [], [], [], []
+predictions, freqs, periods, keys, r2w = [], [], [], [], []
 
 for sym in SYMBOLS:
     print(f'Calculating symbol = {sym} ...')
 
     df = df_all[df_all['symbol_id'] == sym]
     y = df[TARGET]
+    weights = df['weight']
 
     # Recompute FFT with normalization
     n = len(y)
@@ -59,11 +54,27 @@ for sym in SYMBOLS:
     freqs.append(peak_frequency)
     periods.append(1/peak_frequency)
     keys.append(sym)
-    # r2_zero(y, y_hat, weights)
+    r2w.append(r2_zero(y, y_hat[:len(y)], weights))
 
 
 predictions = pd.concat(predictions, keys=keys)
 
 f, ax = plt.subplots()
-ax.bar(range(len(periods)), periods)
+ax.plot(magnitude)
+plt.show()
+
+f, ax = plt.subplots()
+ax.plot(y.values[:900])
+ax.plot(y_hat[:900])
+plt.show()
+
+f, ax = plt.subplots()
+ax.plot(y.values)
+ax.plot(y_hat)
+plt.show()
+
+
+f, axs = plt.subplots(2)
+axs[0].bar(range(len(periods)), periods)
+axs[1].bar(range(len(periods)), r2w)
 plt.show()
