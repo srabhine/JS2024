@@ -16,17 +16,6 @@
 #
 #     last_targets = targets
 
-while True:
-    inputs = last_targets
-    targets = get_latest_sample()
-    outputs, hidden = model(inputs, hidden)
-
-    optimizer.zero_grad()
-    loss = criterion(outputs, targets)
-    loss.backward()
-    optimizer.step()
-
-    last_targets = targets
 
 global list_test, cnt, cnt_day
 list_test = []
