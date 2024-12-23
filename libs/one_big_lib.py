@@ -89,6 +89,7 @@ def stack_features_by_sym(data_all: pd.DataFrame,
     if feature_names is None:
         feature_names = FEATS
     cols = IX_IDS_BY_SYM + ['weight'] + feature_names + [TARGET]
+    cols = list(set(cols))
     cols = check_cols(cols, data_all)
     data_by_sym = data_all[cols]
     data_by_sym.set_index(IX_IDS_BY_SYM, append=True, drop=True,

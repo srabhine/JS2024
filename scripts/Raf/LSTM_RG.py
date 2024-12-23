@@ -18,21 +18,6 @@ import numpy as np
 import random
 from pathlib import Path
 
-# Load data
-df = pl.scan_parquet(LAGS_FEATURES_TRAIN).collect().to_pandas()
-vld = pl.scan_parquet(LAGS_FEATURES_VALID).collect().to_pandas()
-
-df_by_sym = stack_features_by_sym(df)
-
-sym = 0
-df_sym = df_by_sym.swaplevel(axis=1)[sym].ffill()
-
-X = df_sym[FEATS]
-y = df_sym[TARGET]
-
-X= X.loc[1500:1646]
-y= y.loc[1500:1646]
-
 
 def create_sequences(X: pd.DataFrame,
                      y: Optional[pd.Series] = None,
@@ -65,6 +50,7 @@ def create_sequences(X: pd.DataFrame,
         y_values = y.values
     else:
         y_values = None
+        y_seq = None
     
     n_samples = (len(X_values) - sequence_length) // stride + 1
     n_features = X_values.shape[1]
@@ -84,12 +70,186 @@ def create_sequences(X: pd.DataFrame,
         
     return X_seq, y_seq
 
+
+
+# Load data
+df_all = pl.scan_parquet(LAGS_FEATURES_TRAIN).collect().to_pandas()
+vld_all = pl.scan_parquet(LAGS_FEATURES_VALID).collect().to_pandas()
+
+# df = df_all.query('date_id>=1500')
+df = df_all.query('date_id>=1645')
+df_by_sym = stack_features_by_sym(df)
+
+
 # Utilisation de la fonction
 sequence_length = 10  # Longueur des séquences
 stride = 1  # Pas entre chaque séquence
 
-X_sequences, y_sequences = create_sequences(X, y, sequence_length,
-                                            stride)
+# As long as this is squared (df_by_sym, then we are fine)
+
+# Train: do locally
+kwargs = {}
+path = ''
+suffix = 'LSTM'
+models = {s: None for s in SYMBOLS}
+for s in SYMBOLS:
+    print(f'Symbol {s}')
+    df_sym = df_by_sym.swaplevel(axis=1)[s].ffill()
+    X = df_sym[FEATS]
+    y = df_sym[TARGET]
+    X_sequences, y_sequences = create_sequences(X, y, sequence_length,
+                                                stride)
+    if s == SYMBOLS[0]:
+        models[s] = create_model()
+        models[s].fit(X_sequences, y_sequences, **kwargs)
+        # Try your setup_an_train
+        model_name = f'{suffix}_{s}'
+        models[s].save(path + model_name)
+    else:
+        models[s] = create_model()
+        models[s].save(path + model_name)
+
+
+# Submission in predict() function
+
+# Mimic submission (exclude this)
+# From here
+cols = ['time_id', 'date_id', 'weight', 'is_', 'symbol_id'] + \
+       FEATS + [TARGET]
+df_tmp = pd.DataFrame(np.zeros((len(SYMBOLS), len(cols))),
+                      columns=cols)
+df_tmp2 = df_tmp[['time_id', 'date_id', 'symbol_id', 'weight'] +
+                 FEATS + [TARGET]]
+df_tmp2['symbol_id'] = range(len(SYMBOLS))
+test_df = df_tmp2.copy()
+test_df['symbol_id'] = test_df['symbol_id'] + 1
+# this will remove one symbol and add a new one
+
+
+test_df_stacked = stack_features_by_sym(test_df)
+df_by_sym_test = pd.concat((df_by_sym_test.iloc[-sequence_length:, :],
+                     test_df_stacked), axis=0).fillna(0.0)
+# Careful here
+# Joining should be fine, but we might get NaN's
+
+# Pre-submission
+global df_by_sym_test
+df_by_sym_test = df_by_sym.iloc[-sequence_length-1:]
+
+# Predict step
+# y_pred initialized as usual
+# TODO:
+y_pred = pd.Series(0, index=test_df['symbol_id']) # BUT CHANGE with correct symbols
+
+X = df_by_sym_test[FEATS]
+y = df_by_sym_test[TARGET]
+X_swap = X.swaplevel(axis=1)
+symbols_tmp = X_swap.columns.droplevel(1).unique()
+for s in SYMBOLS:
+    if s in symbols_tmp and s in test_df['symbol_id']:
+        X_tmp = X_swap[s]
+        X_sequences, _ = create_sequences(X_swap,None,
+                                          sequence_length, stride)
+        y_pred[s] = models[s].predict(X_sequences[-1].reshape(1,
+                                                               sequence_length,
+                                                               -1))
+
+
+# Up to here we test locally
+# ------------------------------------------------------------
+
+# # Create indices for submission
+# X = df_by_sym[FEATS]
+# y = df_by_sym[TARGET]
+# X_swap = X.swaplevel(axis=1)
+# cols = X_swap.columns
+# map_cols = {X_swap.columns.get_loc((s, n)): (s, n)  for s in SYMBOLS
+#             for n
+#             in FEATS}
+# inv_map_cols = {v:k for (k, v) in map_cols.items()}
+# ix_by_sym = {}
+# for s in SYMBOLS:
+#     ix_by_sym[s] = []
+#     for n in FEATS:
+#         ix_by_sym[s].append(inv_map_cols[(s, n)])
+
+# # Example
+# X_sequences[:, :, ix_by_sym[34]].shape
+
+
+# Pre-submission
+global df_by_sym_test
+df_by_sym_test = df_by_sym.iloc[-sequence_length-1:]
+
+
+
+# test_df = pd.DataFrame()  # index=int, len=len(symbols),
+# # columns=features + other stuff
+#
+# # Mimic submission (exclude this)
+#
+# # From here
+# cols = ['time_id', 'date_id', 'weight', 'is_', 'symbol_id'] + \
+#        FEATS + [TARGET]
+# df_tmp = pd.DataFrame(np.zeros((len(SYMBOLS), len(cols))),
+#                       columns=cols)
+# df_tmp2 = df_tmp[['time_id', 'date_id', 'symbol_id', 'weight'] +
+#                  FEATS + [TARGET]]
+# df_tmp2['symbol_id'] = range(len(SYMBOLS))
+# test_df = df_tmp2.copy()
+# # To here
+
+
+# Submission in predict() function
+test_df_stacked = stack_features_by_sym(test_df)
+df_by_sym_test = pd.concat((df_by_sym_test.iloc[-sequence_length:, :],
+                     test_df_stacked), axis=0).fillna(0.0)
+# Careful here
+# Joining should be fine, but we might get NaN's
+
+# Predict step
+# y_pred initialized as usual
+# TODO:
+y_pred = pd.Series(0, index=test_df['symbol_id']) # BUT CHANGE with correct symbols
+
+X = df_by_sym_test[FEATS]
+y = df_by_sym_test[TARGET]
+X_swap = X.swaplevel(axis=1)
+symbols_tmp = X_swap.columns.droplevel(1).unique()
+for s in SYMBOLS:
+    if s in symbols_tmp and s in test_df['symbol_id']:
+        X_tmp = X_swap[s]
+        X_sequences, _ = create_sequences(X_swap,None,
+                                          sequence_length, stride)
+        y_pred[s] = models[s].predict(X_sequences[-1].reshape(1,
+                                                               sequence_length,
+                                                               -1))
+
+
+# Example of submission
+# df_tmp = df_by_sym.iloc[-1:, :]
+# df_tmp = df_tmp.reset_index()
+
+
+# test_df_stacked = stack_features_by_sym(test_df)
+#
+# df_tmp3 = pd.concat((df_by_sym.iloc[-sequence_length:, :],
+#                      test_df_stacked), axis=0)
+#
+# model.predict(df_tmp3.values[])
+
+# feature_names = FEATS
+# cols = IX_IDS_BY_SYM + ['weight'] + feature_names + [TARGET]
+# # cols = check_cols(cols, data_all)
+# data_by_sym_tmp = df_tmp2[cols]
+# data_by_sym_tmp.set_index(IX_IDS_BY_SYM, append=True, drop=True,
+#                       inplace=True)
+# data_by_sym_tmp = data_by_sym_tmp.droplevel(0, axis='index')
+# data_by_sym_tmp = data_by_sym_tmp.unstack(level=['symbol_id'])
+# data_by_sym_tmp.ffill().fillna(0)
+#
+# stack_features_by_sym(df_tmp)
+
 
 
 def set_seed(seed: int = 42):
@@ -389,6 +549,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
     return train_losses, val_losses, train_r2s, val_r2s
 
 # Configuration et entraînement
+
+# 2/3 functions: setup, train, and predict
+
 def setup_and_train(X_sequences, y_sequences, seed: int = 42):
     # Set seed for reproducibility
     set_seed(seed)
