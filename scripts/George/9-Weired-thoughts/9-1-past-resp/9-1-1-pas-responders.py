@@ -94,4 +94,4 @@ concat = symbol_out_combined
 
 output = Dense(1)(concat)
 model = Model(inputs=[sequence_input, symbol_input], outputs=output)
-# noted
+# n
