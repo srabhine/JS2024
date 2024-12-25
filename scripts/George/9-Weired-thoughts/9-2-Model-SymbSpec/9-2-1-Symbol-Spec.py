@@ -27,44 +27,51 @@ set_random_seeds(42)
 
 
 def load_data(path, start_dt, end_dt):
-    data = pl.scan_parquet(path).select(
-        pl.all(),).filter(
+    data = pl.scan_parquet(path).filter(
         pl.col("date_id").gt(start_dt),
         pl.col("date_id").le(end_dt),
-    ).fill_null(0).fill_null(0)
+    ).fill_null(0).fill_nan(0)
 
     data = data.collect().to_pandas()
 
-    data.replace([np.inf, -np.inf], 0, inplace=True)
+    # data.replace([np.inf, -np.inf], 0, inplace=True)
     return data
+class StackAndReduceLayer(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(StackAndReduceLayer, self).__init__(**kwargs)
+
+    def call(self, inputs):
+        # inputs is expected to be a list of Tensors to stack
+        stacked = tf.stack(inputs, axis=1)  # Adjust the axis if needed
+        reduced = tf.reduce_sum(stacked, axis=-1)
+        return reduced
 
 
-
-is_linux = False
+is_linux = True
 if is_linux:
-    path = f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
-    training_resp_lag_path = "/home/zt/pyProjects/JaneSt/Team/data/CustomData_2_RespLags_onTime/trainData"
-    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/1_HS_Plan/Torch-NN-models"
+    training_resp_lag_path_onDate = f"/home/zt/pyProjects/JaneSt/Team/data/CustomData_1_RespLags/training"
+    training_resp_lag_path_onTime = "/home/zt/pyProjects/JaneSt/Team/data/CustomData_2_RespLags_onTime/trainData"
+    model_saving_path = "/home/zt/pyProjects/JaneSt/Team/scripts/George/9-Weired-thoughts/9-2-Model-SymbSpec/models"
+    model_saving_name = "model_1.keras"
 else:
     training_resp_lag_path = "E:\Python_Projects\JS2024\GITHUB_C\data\CustomData_2_RespLags_onTime\\trainData"
     model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\9-Weired-thoughts\9-2-Model-SymbSpec\models"
-    model_saving_name = "model_1.kears"
+    model_saving_name = "model_1.keras"
     
     
 
 feature_names = ["symbol_id", "date_id"] + [f"feature_{i:02d}" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
 target_name = "responder_6"
 
-X_train = load_data(training_resp_lag_path, start_dt=1450, end_dt=1500)
+X_train = load_data(training_resp_lag_path_onDate, start_dt=800, end_dt=1600)
 y_train = X_train[target_name]
 w_train = X_train["weight"]
 X_train = X_train[feature_names]
 
-X_valid = load_data(training_resp_lag_path, start_dt=1650, end_dt=1690)
+X_valid = load_data(training_resp_lag_path_onDate, start_dt=1601, end_dt=1698)
 y_valid = X_valid[target_name]
 w_valid = X_valid["weight"]
 X_valid = X_valid[feature_names]
-
 
 
 dimension = X_train.shape[1]
@@ -74,7 +81,7 @@ dimension = X_train.shape[1]
 num_features = len(feature_names)  # Including 'symbol_id' in the feature count
 
 # Input layer adjustment for non-sequential data: treat each row/sample as a separate input
-input_layer = Input(shape=(num_features,), name='input_layer')
+input_layer = Input(shape=(dimension,), name='input_layer')
 
 # Assume `symbol_id` is the first feature/column — adjust as needed based on your feature order
 symbol_id = input_layer[:, 0]  # Directly using the first feature if it's an integer
@@ -95,23 +102,21 @@ for i in range(39):  # Adjust according to the number of possible symbols
         tf.zeros_like(inputs[0])
     ))([x, symbol_id])
 
-    target_symbol_out = Dense(units=32, activation='swish', name=f"symbol_{i}")(target_symbol_input)
+    target_symbol_out = Dense(units=128, activation='swish', name=f"symbol_{i}")(target_symbol_input)
     symbol_outputs.append(target_symbol_out)
 
 # Combine all symbol outputs
-symbol_out_combined = tf.stack(symbol_outputs, axis=-1)  # Shape [N, 32, 39]
-symbol_out_combined = tf.reduce_sum(symbol_out_combined, axis=-1)  # Shape [N, 32]
-sigmoid_output = Dense(12, activation='swish')(symbol_out_combined)
+symbol_out_combined = StackAndReduceLayer()(symbol_outputs)  # Shape [N, 32, 39]
+sigmoid_output = Dense(64, activation='swish')(symbol_out_combined)
 # Final layer to make predictions
 # output = Dense(1, activation='tanh')(symbol_out_combined)
-sigmoid_output = Dense(1, activation='sigmoid')(symbol_out_combined)
-scaled_output = Lambda(lambda x: x - 0.5)(sigmoid_output)
+sigmoid_output = Dense(1, activation='tanh')(symbol_out_combined)
+# scaled_output = Lambda(lambda x: 2*(x - 0.5))(sigmoid_output)
 
 # Create the model
-model = Model(inputs=input_layer, outputs=scaled_output)
+model = Model(inputs=input_layer, outputs=sigmoid_output)
 # Model summary to verify the structure
 model.summary()
-
 
 
 model.compile(optimizer=optimizers.Adam(learning_rate=0.001),
@@ -134,7 +139,6 @@ ca = [
         verbose=1,  # Verbosity mode
         min_lr=1e-6  # Lower bound on the learning rate
     )
-
 ]
 
 model.fit(
