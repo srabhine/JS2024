@@ -101,13 +101,14 @@ for i in range(39):  # Adjust according to the number of possible symbols
 # Combine all symbol outputs
 symbol_out_combined = tf.stack(symbol_outputs, axis=-1)  # Shape [N, 32, 39]
 symbol_out_combined = tf.reduce_sum(symbol_out_combined, axis=-1)  # Shape [N, 32]
-
+sigmoid_output = Dense(12, activation='swish')(symbol_out_combined)
 # Final layer to make predictions
-output = Dense(1, activation='tanh')(symbol_out_combined)
+# output = Dense(1, activation='tanh')(symbol_out_combined)
+sigmoid_output = Dense(1, activation='sigmoid')(symbol_out_combined)
+scaled_output = Lambda(lambda x: x - 0.5)(sigmoid_output)
 
 # Create the model
-model = Model(inputs=input_layer, outputs=output)
-
+model = Model(inputs=input_layer, outputs=scaled_output)
 # Model summary to verify the structure
 model.summary()
 
@@ -148,4 +149,5 @@ model.fit(
     shuffle=True
 )
 
+model.predict(X_valid[:30])
 
