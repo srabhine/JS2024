@@ -96,7 +96,7 @@ def stack_features_by_sym(data_all: pd.DataFrame,
                    inplace=True)
     data_by_sym = data_by_sym.droplevel(0, axis='index')
     data_by_sym = data_by_sym.unstack(level=['symbol_id'])
-    data_by_sym.ffill().fillna(0)
+    data_by_sym = data_by_sym.ffill().fillna(0)
 
     return data_by_sym
 
