@@ -38,7 +38,12 @@ def load_data(path, start_dt, end_dt):
     data.replace([np.inf, -np.inf], 0, inplace=True)
     return data
 
-
+def making_time_id_features(X_test):
+    X_test['sin_time_id']=np.sin(2*np.pi*X_test['time_id']/967)
+    X_test['cos_time_id']=np.cos(2*np.pi*X_test['time_id']/967)
+    X_test['sin_time_id_halfday']=np.sin(2*np.pi*X_test['time_id']/483)
+    X_test['cos_time_id_halfday']=np.cos(2*np.pi*X_test['time_id']/483)
+    return X_test
 
 is_linux = False
 if is_linux:
@@ -52,18 +57,21 @@ else:
     
     
 
-feature_names = ["symbol_id", "date_id"] + [f"feature_{i:02d}" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
+feature_names = ["symbol_id"] + [f"feature_{i:02d}" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
+time_id_features = ["sin_time_id", "cos_time_id", "sin_time_id_halfday", "cos_time_id_halfday"]
 target_name = "responder_6"
 
 X_train = load_data(training_resp_lag_path, start_dt=1450, end_dt=1500)
+X_train = making_time_id_features(X_train)
 y_train = X_train[target_name]
 w_train = X_train["weight"]
-X_train = X_train[feature_names]
+X_train = X_train[feature_names+time_id_features]
 
 X_valid = load_data(training_resp_lag_path, start_dt=1650, end_dt=1690)
+X_valid = making_time_id_features(X_valid)
 y_valid = X_valid[target_name]
 w_valid = X_valid["weight"]
-X_valid = X_valid[feature_names]
+X_valid = X_valid[feature_names+time_id_features]
 
 
 
