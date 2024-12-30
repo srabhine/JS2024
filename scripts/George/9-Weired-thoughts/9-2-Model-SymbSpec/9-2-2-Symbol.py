@@ -55,14 +55,30 @@ else:
     training_resp_lag_path = "E:\Python_Projects\JS2024\GITHUB_C\data\CustomData_2_RespLags_onTime\\trainData"
     model_saving_path = "E:\Python_Projects\JS2024\GITHUB_C\scripts\George\9-Weired-thoughts\9-2-Model-SymbSpec\models"
     model_saving_name = "model_1.kears"
-    
-    
+
+
 
 feature_names = ["symbol_id"] + [f"feature_{i:02d}" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
 time_id_features = ["sin_time_id", "cos_time_id", "sin_time_id_halfday", "cos_time_id_halfday"]
 target_name = "responder_6"
 
-X_train = load_data(training_resp_lag_path, start_dt=500, end_dt=1690)
+X_train = load_data(training_resp_lag_path, start_dt=1689, end_dt=1690)
+test = tf.data.Dataset.from_tensor_slices(X_train)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 X_train = making_time_id_features(X_train)
 y_train = X_train[target_name]
 w_train = X_train["weight"]
