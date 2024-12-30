@@ -15,7 +15,8 @@ class CONFIG:
 
 
 train = pl.scan_parquet(
-    f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
+    # f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
+    "E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
 ).select(
     pl.int_range(pl.len(), dtype=pl.UInt32).alias("id"),
     pl.all(),
@@ -43,5 +44,5 @@ train = train.join(lags, on=["symbol_id","date_id", "time_id"],  how="left")
 
 # Save data as parquets
 train.collect().write_parquet(
-    f"/home/zt/pyProjects/JaneSt/Team/data/CustomData_2_RespLags_onTime/trainData", partition_by = "date_id",
+    f"E:\Python_Projects\JS2024\GITHUB_C\data\CustomData_2_RespLags_onTime\\trainData", partition_by = "date_id",
 )
