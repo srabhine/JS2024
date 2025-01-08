@@ -128,3 +128,4 @@ for fold, (train_index, valid_index) in enumerate(kf.split(X)):
     print(f"Model for fold {fold + 1} saved to {model_file_path}")
 
     del X_train, X_valid, y_train, y_valid, w_train, w_valid, model
+    # aaa
