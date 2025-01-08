@@ -75,7 +75,7 @@ class CONFIG:
         f"responder_{idx}_std" for idx in range(9)] + [f"responder_{idx}_max" for idx in range(9)] \
                     + [f"responder_{idx}_last" for idx in range(9)]
     model_path = "/kaggle/input/janestreet-public-model/xgb_001.pkl"
-    lag_ndays = 2
+    lag_ndays = 1
 
 
 # feature_names = ["symbol_id"] + [f"feature_{i:02d}" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
@@ -118,7 +118,7 @@ def make_data(path, start_dt, end_dt):
     X_train = X_train[CONFIG.lag_cols_post]
     return X_train, y_train, w_train
 
-X_train, y_train, w_train = make_data(original_data_path, 600, 1600)
+X_train, y_train, w_train = make_data(original_data_path, 500, 1689)
 X_valid, y_valid, w_valid = make_data(original_data_path, 1601, 1689)
 
 
@@ -161,15 +161,15 @@ model = LGBMRegressor(
     device="gpu",
     objective="regression_l2",
     boosting_type='gbdt',
-    n_estimators=1500,
-    max_depth=9,
+    n_estimators=3000,
+    max_depth=6,
     learning_rate=0.01,
-    colsample_bytree=0.6,
-    subsample=0.6,
-    random_state=42,
-    reg_lambda=0.8,
-    reg_alpha=0.1,
-    num_leaves=800,
+    colsample_bytree=0.65,
+    subsample=0.5,
+    random_state=80,
+    reg_lambda=0.75,
+    reg_alpha=0.2,
+    num_leaves=850,
     verbosity=-1
 )
 
@@ -182,9 +182,13 @@ y_pred_valid = model.predict(X_valid)
 valid_score = r2_score(y_valid, y_pred_valid, sample_weight=w_valid)
 print(f"Validation R² Score: {valid_score}")
 
-# Save the model to a file using pickle
-with open('/home/zt/pyProjects/JaneSt/Team/scripts/George/9-Weired-thoughts/9-3-lagging-days/models/lgbm_model_shift2.pkl',
-          'wb') as file:
-    pickle.dump(model, file)
+
+model.booster_.save_model('/home/zt/pyProjects/JaneSt/Team/scripts/George/9-Weired-thoughts/9-3-lagging-days/models/lgbm_model_shift1_3.txt')
+
+
+# # Save the model to a file using pickle
+# with open('/home/zt/pyProjects/JaneSt/Team/scripts/George/9-Weired-thoughts/9-3-lagging-days/models/lgbm_model_shift2.pkl',
+#           'wb') as file:
+#     pickle.dump(model, file)
 
 "Validation R² Score: 0.007711958245371298"
