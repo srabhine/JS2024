@@ -97,46 +97,44 @@ def create_model(input_dim, lr, weight_decay):
 
 
 
-feature_names = [f"feature_{i:02d}" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
-label_name = 'responder_6'
-weight_name = 'weight'
+
 
 # Load data
 # df = pl.scan_parquet(f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/FOLD3").collect().to_pandas()
 
-start_id = 1101
-end_id = 1669
-folder_paths = [
-    f"/content/drive/MyDrive/JaneSt/CustomData_1/training/date_id={date_id}/*.parquet"
-    for date_id in range(start_id, end_id + 1)
-]
-lazy_frames = [pl.scan_parquet(path) for path in folder_paths]
-combined_lazy_df = pl.concat(lazy_frames)
-df = combined_lazy_df.collect().to_pandas()
+def load_data(path, start_dt, end_dt):
+    data = pl.scan_parquet(path).select(
+        pl.all(),).filter(
+        pl.col("date_id").gt(start_dt),
+        pl.col("date_id").le(end_dt),
+    ).fill_null(0).fill_null(0)
+
+    data = data.collect().to_pandas()
+
+    data.replace([np.inf, -np.inf], 0, inplace=True)
+    return data
+
+training_resp_lag_path = "/home/zt/pyProjects/JaneSt/Team/data/CustomData_1_RespLags/training"
+feature_names = ["symbol_id"] + [f"feature_{i:02d}" for i in range(79)] + [f"responder_{idx}_lag_1" for idx in range(9)]
+time_id_features = ["sin_time_id", "cos_time_id", "sin_time_id_halfday", "cos_time_id_halfday"]
+target_name = "responder_6"
 
 
 
 
-valid = pl.scan_parquet(f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/Lag_XGB/data/validation.parquet").collect().to_pandas()
 
-# df = pd.concat([df, valid]).reset_index(drop=True)
-df[feature_names] = df[feature_names].ffill().fillna(0)
-valid[feature_names] = valid[feature_names].ffill().fillna(0)
+X_train = load_data(training_resp_lag_path, start_dt=500, end_dt=1600)
+y_train = X_train[target_name]
+w_train = X_train["weight"]
+
+X_valid = load_data(training_resp_lag_path, start_dt=500, end_dt=1690)
+y_valid = X_valid[target_name]
+w_valid = X_valid["weight"]
 
 
 
-X_train = df[ feature_names ]
-y_train = df[ label_name ]
-w_train = df[ "weight" ]
-X_valid = valid[ feature_names ]
-y_valid = valid[ label_name ]
-w_valid = valid[ "weight" ]
-
-# train_dataset = prepare_dataset(df, w_train)
-# valid_dataset = prepare_dataset(valid, w_valid)
-
-train_dataset = prepare_dataset(df, w_train, feature_names, label_name, batch_size=8129)
-valid_dataset = prepare_dataset(valid, w_valid, feature_names, label_name, batch_size=8129)
+train_dataset = prepare_dataset(X_train, w_train, feature_names, target_name, batch_size=10200)
+valid_dataset = prepare_dataset(X_valid, w_valid, feature_names, target_name, batch_size=10200)
 
 
 
@@ -144,7 +142,7 @@ valid_dataset = prepare_dataset(valid, w_valid, feature_names, label_name, batch
 lr = 0.01
 weight_decay = 5e-4
 
-input_dim = df[feature_names].shape[1]
+input_dim = X_valid[feature_names].shape[1]
 model = create_model(input_dim=input_dim, lr = lr, weight_decay=weight_decay)
 model.summary()
 
