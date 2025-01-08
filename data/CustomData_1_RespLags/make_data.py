@@ -15,7 +15,7 @@ class CONFIG:
 
 
 train = pl.scan_parquet(
-    f"/home/zt/pyProjects/Optiver/JaneStreetMktPred/data/jane-street-real-time-market-data-forecasting/train.parquet"
+    "E:\Python_Projects\Optiver\JaneStreetMktPred\data\jane-street-real-time-market-data-forecasting\\train.parquet"
 ).select(
     pl.int_range(pl.len(), dtype=pl.UInt32).alias("id"),
     pl.all(),
@@ -38,27 +38,12 @@ lags = lags.group_by(["date_id", "symbol_id"], maintain_order=True).last()  # pi
 train = train.join(lags, on=["date_id", "symbol_id"],  how="left")
 
 
-# Split training data and validation data
-len_train   = train.select(pl.col("date_id")).collect().shape[0]
-valid_records = int(len_train * CONFIG.valid_ratio)
-len_ofl_mdl = len_train - valid_records
-last_tr_dt  = train.select(pl.col("date_id")).collect().row(len_ofl_mdl)[0]
 
-print(f"\n len_train = {len_train}")
-print(f"\n len_ofl_mdl = {len_ofl_mdl}")
-print(f"\n---> Last offline train date = {last_tr_dt}\n")
-
-training_data = train.filter(pl.col("date_id").le(last_tr_dt))
-validation_data   = train.filter(pl.col("date_id").gt(last_tr_dt))
 
 
 # Save data as parquets
-training_data.collect().\
+train.collect().\
 write_parquet(
-    f"/home/zt/pyProjects/JaneSt/Team/data/CustomData_1_RespLags/training", partition_by = "date_id",
+    f"E:\Python_Projects\JS2024\GITHUB_C\data\CustomData_1_RespLags\\trainData", partition_by = "date_id",
 )
 
-validation_data.collect().\
-write_parquet(
-    "/home/zt/pyProjects/JaneSt/Team/data/CustomData_1_RespLags/validation", partition_by = "date_id",
-)
