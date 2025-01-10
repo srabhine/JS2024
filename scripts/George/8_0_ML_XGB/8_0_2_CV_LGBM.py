@@ -7,6 +7,7 @@ from sklearn.metrics import r2_score
 from xgboost import XGBRegressor
 import random
 import pickle
+import lightgbm as lgb
 from sklearn.model_selection import KFold, ShuffleSplit
 
 def set_random_seeds(seed=42):
@@ -49,29 +50,23 @@ def r2_xgb(y_true, y_pred, sample_weight=None):
     r2 = 1 - np.average((y_pred - y_true) ** 2, weights=sample_weight) / (np.average((y_true) ** 2, weights=sample_weight) + 1e-38)
     return r2
 
-def get_model(seed):
-    # XGBoost parameters
-    XGB_Params = {
-        'booster':          'gbtree',
-        'learning_rate':        0.05,
-        'n_estimators':          200,
-        'early_stopping_rounds': None,
-        'enable_categorical':    False,
-        'grow_policy':           None,
-        'max_cat_to_onehot':     None,
-        'max_depth':              6,
-        'subsample':             0.6,
-        'colsample_bytree':      0.8,
-        'reg_alpha':               2,
-        'reg_lambda':              8,
-        'random_state':         seed,
-        'tree_method':        'hist',
-        'device':             'cuda',
-        'eval_metric':          r2_xgb,
-        'verbosity':               1
-    }
-    XGB_Model = XGBRegressor(**XGB_Params)
-    return XGB_Model
+
+# XGBoost parameters
+# Params used to retrain
+input_params = {"num_leaves": 31, "feature_fraction": 0.9, "n_estimators": 120, "learning_rate": 0.1}
+
+# Create the LGBMRegressor model with predefined hyperparameters
+params = {
+    'objective'       : 'regression',
+    'metric'          : 'rmse',  # Root Mean Squared Error
+    'boosting_type'   : 'gbdt',  # Gradient Boosted Decision Trees
+    'num_leaves'      : input_params['num_leaves'],
+    'learning_rate'   : input_params['learning_rate'],
+    'feature_fraction': input_params['feature_fraction'],
+    'n_estimators'    : input_params['n_estimators']
+}
+    
+
 
 feature_names = [f"feature_{i:02d}" for i in range(79)]
 lag_col = [f"responder_{idx}_lag_1" for idx in range(9)]
@@ -99,18 +94,15 @@ for fold, (train_index, valid_index) in enumerate(ss.split(X)):
     X_train, X_valid = X[train_index].to_numpy(), X[valid_index].to_numpy()
     y_train, y_valid = y[train_index].to_numpy(), y[valid_index].to_numpy()
     w_train, w_valid = w[train_index].to_numpy(), w[valid_index].to_numpy()
-
-
-
-    model = get_model(42)
-    model.fit(
-        X_train, y_train,
-        sample_weight=w_train,
-        eval_set=[(X_valid, y_valid)],
-        sample_weight_eval_set=[w_valid],
-        verbose=10  # print logs every 100 rounds
+    
+    train_data = lgb.Dataset(X_train, label=y_train)
+    
+    model = lgb.train(
+            params,
+            train_data,
+            # num_boost_round=150
     )
-
+    
     # Predict and evaluate the model here if needed
     y_pred = model.predict(X_val)
     score = r2_score(y_val, y_pred, sample_weight=w_val)
@@ -120,9 +112,8 @@ for fold, (train_index, valid_index) in enumerate(ss.split(X)):
     model_file_path = snapshot_directory + f'xgb_cv_{fold + 1}.json'
 
     # Save the model
-    model.save_model(model_file_path)
-
-    print(f"Model for fold {fold + 1} saved to {model_file_path}")
+    # lgb_model.save_model(model_file_path)
+    # print(f"Model for fold {fold + 1} saved to {model_file_path}")
 
     del X_train, X_valid, y_train, y_valid, w_train, w_valid, model
     
